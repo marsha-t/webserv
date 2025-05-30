@@ -7,7 +7,7 @@ SRC_DIR     := src
 OBJ_DIR     := obj
 INC_DIR     := includes
 
-SRC         := $(shell find $(SRC_DIR) -name '*.cpp')
+SRC         := $(SRC_DIR)/main.cpp $(SRC_DIR)/http/Request.cpp
 OBJ         := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 all: $(NAME)

@@ -1,9 +1,12 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
+#include "common.hpp"
+
 class Response
 {
 	private:
+		std::string _httpVersion;
 		std::string _statusLine;
 		std::map<std::string, std::string> _headers;
 		std::string _body;
