@@ -2,6 +2,7 @@
 #define SERVERCONFIG_HPP
 
 #include "../../includes/common.hpp"
+#include "Route.hpp"
 
 class ServerConfig
 {
@@ -19,14 +20,14 @@ class ServerConfig
 		// Setters
 		void	setHost(const std::string &host);
 		void	setPort(int port);
-		void	setServerName(const std::string &serverName);
+		void	addServerName(const std::string &serverName);
 		void	addErrorPage(int code, const std::string &filepath);
 		void	addRoute(const Route &route);
-		void	addClientMaxBodySize(unsigned int clientMaxBodySize);
+		void	setClientMaxBodySize(unsigned int clientMaxBodySize);
 		// Getters
 		const std::string &getHost(void) const;
 		int	getPort(void) const;
-		const std::string &getServerName(void) const;
+		const std::vector<std::string> &getServerNames(void) const;
 		const std::vector<Route> &getRoutes(void) const;
 		const std::map<int, std::string> &getErrorPages(void) const;
 		unsigned int getClientMaxBodySize(void) const;
@@ -34,7 +35,7 @@ class ServerConfig
 	private:
 		std::string	_host;
 		int	_port;
-		std::string _serverName;
+		std::vector<std::string> _serverNames;
 		std::map<int, std::string> _errorPages;
 		std::vector<Route> _routes;
 		unsigned int _clientMaxBodySize;

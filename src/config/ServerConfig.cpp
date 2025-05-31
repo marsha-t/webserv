@@ -18,14 +18,14 @@ ServerConfig &ServerConfig::operator=(const ServerConfig &obj)
 
 void	ServerConfig::setHost(const std::string &host) { _host = host; }
 void	ServerConfig::setPort(int port) { _port = port; }
-void	ServerConfig::setServerName(const std::string &serverName) { _serverName = serverName; }
+void	ServerConfig::addServerName(const std::string &serverName) { _serverNames.push_back(serverName); }
 void	ServerConfig::addErrorPage(int code, const std::string &filepath) { _errorPages[code] = filepath; }
 void	ServerConfig::addRoute(const Route &route) { _routes.push_back(route); }
-void	ServerConfig::addClientMaxBodySize(unsigned int clientMaxBodySize) { _clientMaxBodySize = clientMaxBodySize; }
+void	ServerConfig::setClientMaxBodySize(unsigned int clientMaxBodySize) { _clientMaxBodySize = clientMaxBodySize; }
 
-	const std::string &ServerConfig::getHost(void) const { return _host; }
+const std::string &ServerConfig::getHost(void) const { return _host; }
 int	ServerConfig::getPort(void) const { return _port; }
-const std::string &ServerConfig::getServerName(void) const { return _serverName; }
+const std::vector<std::string> &ServerConfig::getServerNames(void) const { return _serverNames; }
 const std::vector<Route> &ServerConfig::getRoutes(void) const { return _routes; }
 const std::map<int, std::string> &ServerConfig::getErrorPages(void) const { return _errorPages; }
 unsigned int ServerConfig::getClientMaxBodySize(void) const { return _clientMaxBodySize; }
