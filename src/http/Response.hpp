@@ -1,7 +1,7 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
-#include "common.hpp"
+#include "../../includes/common.hpp"
 
 class Response
 {
