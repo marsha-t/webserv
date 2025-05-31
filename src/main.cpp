@@ -1,11 +1,13 @@
 #include "../includes/common.hpp"
-#include "../includes/Request.hpp"
+#include "./http/Request.hpp"
+#include "./config/ConfigParser.hpp"
 
 void    errorMsg(std::string msg)
 {
 	std::cerr << RED << msg << RESET << std::endl;
 }
-int	main(void)
+
+int	test(void)
 {
 	// Create listening socket
 	int	server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -103,5 +105,25 @@ int	main(void)
     // Parse Request
     // Route to file
     // Build Response
+	return (0);
+}
+
+int	main(int argc, char **argv)
+{
+	if (argc == 1 || argc == 2)
+	{
+		try
+		{
+			std::string configFile = (argc == 1 ? "configs/default.conf" : argv[1]);
+			ConfigParser config(configFile);
+			config.parse();
+		}
+		catch (std::exception &e)
+		{
+			errorMsg(e.what());
+			return (1);
+		}
+	}
+	
 	return (0);
 }

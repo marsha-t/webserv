@@ -1,7 +1,7 @@
 #include "ServerConfig.hpp"
 
 ServerConfig::ServerConfig(void) {}
-ServerConfig::ServerConfig(const ServerConfig &obj): _host(obj._host), _port(obj._port), _serverName(obj._serverName), _routes(obj._routes), _errorPages(obj._errorPages) {}
+ServerConfig::ServerConfig(const ServerConfig &obj): _host(obj._host), _port(obj._port), _serverNames(obj._serverNames), _errorPages(obj._errorPages), _routes(obj._routes), _clientMaxBodySize(obj._clientMaxBodySize) {}
 ServerConfig::~ServerConfig(void) {}
 ServerConfig &ServerConfig::operator=(const ServerConfig &obj)
 {
@@ -9,9 +9,10 @@ ServerConfig &ServerConfig::operator=(const ServerConfig &obj)
 	{
 		_host = obj._host;
 		_port = obj._port;
-		_serverName = obj._serverName;
-		_routes = obj._routes;
+		_serverNames = obj._serverNames;
 		_errorPages = obj._errorPages;
+		_routes = obj._routes;
+		_clientMaxBodySize = obj._clientMaxBodySize;
 	}
 	return (*this);
 }

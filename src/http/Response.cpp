@@ -30,7 +30,7 @@ void    Response::setHeader(const std::string &key, const std::string &value)
 	_headers[key] = value;
 }
 
-void setBody(const std::string &body)
+void Response::setBody(const std::string &body)
 {
 	_body = body;
 }

@@ -23,8 +23,8 @@ class Route
 		void	addIndexFile(const std::string &index);
 		void	setAutoindex(bool autoindex);
 		void	setUploadDir(const std::string &dir);
-		void	setRedirect(const std::string &url);
-		void	addCGIExtension(const std::string &ext, const std::string &exec);
+		void	setRedirect(int statusCode, const std::string &url);
+		void	addCGI(const std::string &ext, const std::string &exec);
 		// ...
 
 		// Getters
@@ -34,8 +34,10 @@ class Route
 		const std::vector<std::string> &getIndexFiles(void) const;
 		bool getAutoindex(void) const;
 		const std::string &getUploadDir(void) const;
-		const std::string &getRedirect(void) const;
-		const std::map<std::string, std::string> &getCGIExtensions(void) const;
+		bool isRedirect(void) const;
+		int getRedirectStatusCode(void) const;
+		const std::string &getRedirectURL(void) const;
+		const std::map<std::string, std::string> &getCGI(void) const;
 		// ...
 
 	private:
@@ -45,8 +47,10 @@ class Route
 		std::vector<std::string> _indexFiles;
 		bool _autoindex;
 		std::string _uploadDir;
-		std::string _redirect;
-		std::map<std::string, std::string> _cgiExtensions;
+		bool _isRedirect;
+		int _redirectStatusCode;
+		std::string _redirectURL;
+		std::map<std::string, std::string> _cgi;
 		// ...
 };
 

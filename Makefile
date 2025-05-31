@@ -7,7 +7,11 @@ SRC_DIR     := src
 OBJ_DIR     := obj
 INC_DIR     := includes
 
-SRC         := $(SRC_DIR)/main.cpp $(SRC_DIR)/http/Request.cpp
+SRC         := $(SRC_DIR)/main.cpp \
+				$(SRC_DIR)/http/Request.cpp $(SRC_DIR)/http/Response.cpp \
+				$(SRC_DIR)/config/ServerConfig.cpp $(SRC_DIR)/config/Route.cpp \
+				$(SRC_DIR)/config/ConfigParser.cpp
+
 OBJ         := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 all: $(NAME)

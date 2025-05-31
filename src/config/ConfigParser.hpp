@@ -29,15 +29,15 @@ class ConfigParser
 		
 		std::string cleanLine(const std::string &line);
 		void	parseServerBlock(std::istream &in);
+		std::vector<std::string> tokenize(const std::string &line);
+		void	parseHostDirective(ServerConfig &server, const std::vector<std::string> &tokens, bool &hostSet);
+		void	parsePortDirective(ServerConfig &server, const std::vector<std::string> &tokens, bool &portSet);
+		void	parseServerName(ServerConfig &server, const std::vector<std::string> &tokens);
+		void 	parseErrorPage(ServerConfig &server, const std::vector<std::string> &tokens);
+		void	parseLocation(ServerConfig &server, std::istream &in, const std::vector<std::string> &tokens);
+		void	parseLocationBlock(std::istream &in, Route &route);
+		void	parseCGIBlock(std::istream &in, Route &route);
+
 };
 
 #endif
-
-
-// Helpers
-		void	parseLocationBlock(std::istream &inStream, Route &route);
-		void	skipEmptyLinesAndComments(std::istream &inStream);
-
-		// Tokenizing and validation
-		std::vector<std::string> tokenize(const std::string &line);
-		bool	isValidDirective(const std::string &directive);

@@ -5,6 +5,8 @@
 #include <string>
 #include <cstring>      // for memset
 #include <sstream>
+#include <fstream>
+#include <cstdlib>
 
 // Sockets
 #include <unistd.h>			// for close(), read(), write()
