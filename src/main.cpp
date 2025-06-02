@@ -110,20 +110,26 @@ int	test(void)
 
 int	main(int argc, char **argv)
 {
-	if (argc == 1 || argc == 2)
-	{
-		try
-		{
-			std::string configFile = (argc == 1 ? "configs/default.conf" : argv[1]);
-			ConfigParser config(configFile);
-			config.parse();
-		}
-		catch (std::exception &e)
-		{
-			errorMsg(e.what());
-			return (1);
-		}
-	}
-	
+	// if (argc == 1 || argc == 2)
+	// {
+	// 	try
+	// 	{
+	// 		std::string configFile = (argc == 1 ? "configs/default.conf" : argv[1]);
+	// 		ConfigParser parser(configFile);
+	// 		parser.parse();
+	// 		std::vector<ServerConfig> configs = parser.getServers();
+			
+	// 		// Server server(configs);
+	// 		// server.run;
+	// 	}
+	// 	catch (std::exception &e)
+	// 	{
+	// 		errorMsg(e.what());
+	// 		return (1);
+	// 	}
+	// }
+	(void) argc;
+	(void) argv;
+	test();
 	return (0);
 }
