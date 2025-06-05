@@ -35,6 +35,21 @@ void Response::setBody(const std::string &body)
 	_body = body;
 }
 
+void Response::setError(int code, const std::string &message)
+{
+	setStatusLine(code, message);
+	setHeader("Content-Type", "text/plain");
+	setBody(::toString(code) + " " + message);
+}
+
+void Response::setFile(const std::string &body, const std::string &mimeType)
+{
+	setStatusLine(200, "OK");
+	setHeader("Content-Type", mimeType);
+	setHeader("Content-Length", ::toString(body.size()));
+	setBody(body);
+}
+
 std::string Response::toString(void) const
 {
 	std::ostringstream oss;

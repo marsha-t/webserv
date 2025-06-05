@@ -2,7 +2,7 @@
 #define RESPONSE_HPP
 
 #include "../../includes/common.hpp"
-
+#include "../../includes/utils.hpp"
 class Response
 {
 	private:
@@ -22,12 +22,14 @@ class Response
 		Response &operator=(const Response &obj);
 
 		// Setters
-			void setStatusLine(int code, const std::string &message);
-			void setHeader(const std::string &key, const std::string &value);
-			void setBody(const std::string &body);
-
+		void setStatusLine(int code, const std::string &message);
+		void setHeader(const std::string &key, const std::string &value);
+		void setBody(const std::string &body);
+		void setError(int code, const std::string &message);
+		void setFile(const std::string &body, const std::string &mimeType);
+	
 		// Other functions
-			std::string toString(void) const;
+		std::string toString(void) const;
 };
 
 #endif

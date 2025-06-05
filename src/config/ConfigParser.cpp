@@ -41,12 +41,12 @@ void	ConfigParser::parse(void)
 std::string ConfigParser::cleanLine(const std::string &line)
 {
 	std::string trimmed = line;
-	size_t comment = trimmed.find('#');
+	std::string::size_type comment = trimmed.find('#');
 	if (comment != std::string::npos)
 		trimmed = trimmed.substr(0, comment);
 	while (!trimmed.empty() && (trimmed[trimmed.size() - 1] == ' ' || trimmed[trimmed.size() - 1] == '\t' || trimmed[trimmed.size() - 1] == ';'))
 		trimmed.erase(trimmed.size() - 1);
-	size_t start = trimmed.find_first_not_of(" \t");
+	std::string::size_type start = trimmed.find_first_not_of(" \t");
 	if (start != std::string::npos)
 		trimmed = trimmed.substr(start);
 	return trimmed;

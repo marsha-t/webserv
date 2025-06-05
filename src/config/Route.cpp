@@ -24,7 +24,13 @@ Route &Route::operator=(const Route &obj)
 }
 
 void	Route::setLocation(const std::string &location) { _location = location; }
-void	Route::setRoot(const std::string &root) { _root = root; }
+void	Route::setRoot(const std::string &root) 
+{ 
+	_root = root;
+	if (!_root.empty() && _root[_root.size() - 1] == '/')
+		_root = _root.substr(0, _root.size() - 1);
+
+}
 void	Route::addMethod(const std::string &method) { _methods.push_back(method); }
 void	Route::addIndexFile(const std::string &index) { _indexFiles.push_back(index); }
 void	Route::setAutoindex(bool autoindex) { _autoindex = autoindex; }

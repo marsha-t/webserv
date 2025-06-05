@@ -1,0 +1,30 @@
+GET /images/logo.png HTTP/1.1
+Host: localhost:8080
+
+----------------------------------------------------------------------
+
+DELETE /docs/oldfile.txt HTTP/1.1
+Host: localhost:8080
+
+----------------------------------------------------------------------
+
+POST /scripts/process.php HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 20
+
+username=admin
+
+----------------------------------------------------------------------
+
+GET /legacy-page HTTP/1.1
+Host: localhost:8080
+
+----------------------------------------------------------------------
+
+POST /upload HTTP/1.1
+Host: localhost:8080
+Content-Type: multipart/form-data; boundary=----
+Content-Length: 1234
+
+------<form data with file>------

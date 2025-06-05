@@ -10,7 +10,10 @@ INC_DIR     := includes
 SRC         := $(SRC_DIR)/main.cpp \
 				$(SRC_DIR)/http/Request.cpp $(SRC_DIR)/http/Response.cpp \
 				$(SRC_DIR)/config/ServerConfig.cpp $(SRC_DIR)/config/Route.cpp \
-				$(SRC_DIR)/config/ConfigParser.cpp
+				$(SRC_DIR)/config/ConfigParser.cpp \
+				$(SRC_DIR)/handler/RequestDispatcher.cpp \
+				$(SRC_DIR)/handler/StaticFileHandler.cpp 
+
 
 OBJ         := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 

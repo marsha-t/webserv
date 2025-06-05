@@ -1,6 +1,10 @@
 #include "../includes/common.hpp"
 #include "./http/Request.hpp"
 #include "./config/ConfigParser.hpp"
+#include "./config/Route.hpp"
+#include "./handler/RequestDispatcher.hpp"
+#include "./handler/IRequestHandler.hpp"
+#include "./handler/StaticFileHandler.hpp"
 
 void    errorMsg(std::string msg)
 {
@@ -82,31 +86,34 @@ int	test(void)
 		errorMsg("Failed to parse HTTP request");
 		return (1); // Return 400 Bad Request
 	}
-	req.printMembers();
+	
+	Route dummyRoute;
+	dummyRoute.setRoot("www");
+	dummyRoute.setAutoindex(false);
+	dummyRoute.addMethod("GET");
+	dummyRoute.addIndexFile("index.html");
+	Response res;
+	RequestDispatcher dispatcher;
+	IRequestHandler *handler = dispatcher.selectHandler(req, dummyRoute);
+	handler->handle(req, res);
+	delete handler;
 
-    // 6. Send a basic HTTP response
-    std::string response = 
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 20\r\n"
-        "\r\n"
-        "<h1>Hello world</h1>" ;
-
-    write(client_socket, response.c_str(), response.size());
+    write(client_socket, res.toString().c_str(), res.toString().size());
 
 	close(server_fd);
 	close(client_socket);
 
-    // Use config file or default config
-    // Parse config file using ConfigParser to create ServerConfig
-    // Create sockets for each Server
-    // Implement poll loop
-    // Implement client connction logic
-    // Parse Request
-    // Route to file
-    // Build Response
 	return (0);
 }
+
+// Use config file or default config
+// Parse config file using ConfigParser to create ServerConfig
+// Create sockets for each Server
+// Implement poll loop
+// Implement client connction logic
+// Parse Request
+// Route to file
+// Build Response
 
 int	main(int argc, char **argv)
 {

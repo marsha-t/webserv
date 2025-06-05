@@ -24,7 +24,7 @@ const std::string &Request::getBody() const { return _body; }
 
 bool	Request::parse(const std::string &raw)
 {
-	size_t	headerEnd = raw.find("\r\n\r\n");
+	std::string::size_type headerEnd = raw.find("\r\n\r\n");
 	if (headerEnd == std::string::npos)
 		return false;
 	std::string headers = raw.substr(0, headerEnd);
@@ -46,7 +46,7 @@ bool	Request::parse(const std::string &raw)
 	while (std::getline(stream, line))
 	{
 		line = trimR(line);
-		size_t colon = line.find(':');
+		std::string::size_type colon = line.find(':');
 		if (colon == std::string::npos)
 			return false;
 		std::string key = line.substr(0, colon);

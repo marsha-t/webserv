@@ -7,6 +7,10 @@
 #include <sstream>
 #include <fstream>
 #include <cstdlib>
+#include <sys/stat.h>
+
+// Utils
+#include "utils.hpp"
 
 // Sockets
 #include <unistd.h>			// for close(), read(), write()
@@ -17,9 +21,10 @@
 // STL
 #include <map>
 #include <vector>
+#include <algorithm>
+
 
 // Colours
-
 #define RESET   "\033[0m"
 #define RED     "\033[31m"
 #define GREEN   "\033[32m"
