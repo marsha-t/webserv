@@ -1,7 +1,7 @@
 #ifndef CONFIGPARSER_HPP
 #define CONFIGPARSER_HPP
 
-#include "../../includes/common.hpp"
+#include "common.hpp"
 #include "ServerConfig.hpp"
 
 class ConfigParser

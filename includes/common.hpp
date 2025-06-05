@@ -16,7 +16,7 @@
 #include <unistd.h>			// for close(), read(), write()
 #include <netinet/in.h>		// for sockaddr_in
 // #include <sys/socket.h> // for socket functions
-// #include <arpa/inet.h>  // for htons
+#include <arpa/inet.h>  // for htons, inet_pton
 
 // STL
 #include <map>

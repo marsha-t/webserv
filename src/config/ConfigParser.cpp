@@ -1,4 +1,4 @@
-#include "ConfigParser.hpp"
+#include "../../includes/ConfigParser.hpp"
 
 // Constructors don't parse (since parse() throws an exception)
 ConfigParser::ConfigParser(void) {}
@@ -21,9 +21,7 @@ void	ConfigParser::parse(void)
 {
 	std::ifstream file(_filename.c_str());
 	if (!file.is_open())
-	{
 		throw std::runtime_error("Unable to open configuration file: " + _filename);
-	}
 	std::string line;
 	while (std::getline(file, line))
 	{

@@ -1,8 +1,8 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
-#include "../../includes/common.hpp"
-#include "../../includes/utils.hpp"
+#include "common.hpp"
+#include "utils.hpp"
 class Response
 {
 	private:

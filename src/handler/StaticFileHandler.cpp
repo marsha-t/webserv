@@ -1,4 +1,4 @@
-#include "StaticFileHandler.hpp"
+#include "../../includes/StaticFileHandler.hpp"
 
 StaticFileHandler::StaticFileHandler(void) {}
 StaticFileHandler::StaticFileHandler(const StaticFileHandler &obj): _route(obj._route) {}

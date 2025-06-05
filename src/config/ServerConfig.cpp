@@ -1,4 +1,4 @@
-#include "ServerConfig.hpp"
+#include "../../includes/ServerConfig.hpp"
 
 ServerConfig::ServerConfig(void) {}
 ServerConfig::ServerConfig(const ServerConfig &obj): _host(obj._host), _port(obj._port), _serverNames(obj._serverNames), _errorPages(obj._errorPages), _routes(obj._routes), _clientMaxBodySize(obj._clientMaxBodySize) {}

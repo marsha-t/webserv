@@ -1,8 +1,8 @@
 #ifndef IREQUESTHANDLER_HPP
 #define IREQUESTHANDLER_HPP
 
-#include "../http/Request.hpp"
-#include "../http/Response.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
 class IRequestHandler 
 {
 	public:

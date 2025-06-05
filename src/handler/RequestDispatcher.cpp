@@ -1,6 +1,15 @@
-#include "RequestDispatcher.hpp"
+#include "../../includes/RequestDispatcher.hpp"
 
-IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Route &route) const
+RequestDispatcher::RequestDispatcher(void) {}
+RequestDispatcher::RequestDispatcher(const RequestDispatcher &obj) { (void)obj; }
+RequestDispatcher &RequestDispatcher::operator=(const RequestDispatcher &obj)
+{
+	(void) obj;
+	return (*this);
+}
+
+RequestDispatcher::~RequestDispatcher() {}
+		IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Route &route) const
 {
 	// if (route.isRedirect)
 	// 	return (new RedirectHandler(route));

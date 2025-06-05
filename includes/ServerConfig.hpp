@@ -1,7 +1,7 @@
 #ifndef SERVERCONFIG_HPP
 #define SERVERCONFIG_HPP
 
-#include "../../includes/common.hpp"
+#include "common.hpp"
 #include "Route.hpp"
 
 class ServerConfig

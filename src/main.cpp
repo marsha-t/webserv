@@ -1,10 +1,11 @@
 #include "../includes/common.hpp"
-#include "./http/Request.hpp"
-#include "./config/ConfigParser.hpp"
-#include "./config/Route.hpp"
-#include "./handler/RequestDispatcher.hpp"
-#include "./handler/IRequestHandler.hpp"
-#include "./handler/StaticFileHandler.hpp"
+#include "../includes/Request.hpp"
+#include "../includes/ConfigParser.hpp"
+#include "../includes/Route.hpp"
+#include "../includes/RequestDispatcher.hpp"
+#include "../includes/IRequestHandler.hpp"
+#include "../includes/StaticFileHandler.hpp"
+#include "../includes/Server.hpp"
 
 void    errorMsg(std::string msg)
 {
@@ -117,26 +118,33 @@ int	test(void)
 
 int	main(int argc, char **argv)
 {
-	// if (argc == 1 || argc == 2)
-	// {
-	// 	try
-	// 	{
-	// 		std::string configFile = (argc == 1 ? "configs/default.conf" : argv[1]);
-	// 		ConfigParser parser(configFile);
-	// 		parser.parse();
-	// 		std::vector<ServerConfig> configs = parser.getServers();
+	// (void) argc;
+	// (void) argv;
+	// test();
+	try
+	{
+		if (argc > 2)
+			throw std::runtime_error("Usage: ./webserv [config_file]");
 			
-	// 		// Server server(configs);
-	// 		// server.run;
-	// 	}
-	// 	catch (std::exception &e)
-	// 	{
-	// 		errorMsg(e.what());
-	// 		return (1);
-	// 	}
-	// }
-	(void) argc;
-	(void) argv;
-	test();
+		std::string configFile = (argc == 1 ? "config/default.conf" : argv[1]);
+		ConfigParser parser(configFile);
+		parser.parse();
+		std::vector<ServerConfig> configs = parser.getServers();
+		std::vector<Server> servers;
+		for (size_t i = 0; i < configs.size(); ++i)
+		{
+			Server indivServer(configs[i]);
+			indivServer.initSocket();
+			servers.push_back(indivServer);
+		}
+		// pollLoop(server); // handles requests etc
+		while (true)
+			pause();
+	}
+	catch (std::exception &e)
+	{
+		errorMsg(e.what());
+		return (1);
+	}
 	return (0);
 }

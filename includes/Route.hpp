@@ -1,7 +1,7 @@
 #ifndef ROUTE_HPP
 #define ROUTE_HPP
 
-#include "../../includes/common.hpp"
+#include "common.hpp"
 
 class Route
 {

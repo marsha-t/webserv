@@ -1,11 +1,11 @@
 #ifndef STATICFILEHANDLER_HPP
 #define STATICFILEHANDLER_HPP
 
-#include "../../includes/common.hpp"
+#include "common.hpp"
 #include "IRequestHandler.hpp"
-#include "../http/Request.hpp"
-#include "../http/Response.hpp"
-#include "../config/Route.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Route.hpp"
 
 
 class StaticFileHandler: public IRequestHandler
