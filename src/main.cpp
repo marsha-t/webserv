@@ -74,7 +74,6 @@ int	test(void)
 	int bytes_read;
 	while ((bytes_read = read(client_socket, buffer, sizeof(buffer) - 1)) > 0)
 	{
-		// std::cout << RED "Stop" RESET << std::endl;
 		buffer[bytes_read] = '\0';
 		rawRequest += buffer;
 		if (rawRequest.find("\r\n\r\n") != std::string::npos)

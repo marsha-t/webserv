@@ -17,6 +17,7 @@
 #include <netinet/in.h>		// for sockaddr_in
 // #include <sys/socket.h> // for socket functions
 #include <arpa/inet.h>  // for htons, inet_pton
+#include <poll.h>
 
 // STL
 #include <map>
