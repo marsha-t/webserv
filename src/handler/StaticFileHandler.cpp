@@ -135,7 +135,7 @@ bool StaticFileHandler::readFile(const std::string &path, std::string &content) 
 	std::ifstream file(path.c_str());
 	if (!file.is_open())
 		return false;
-	std::stringstream buffer;
+	std::ostringstream buffer;
 	buffer << file.rdbuf();
 	file.close();
 	content = buffer.str();
