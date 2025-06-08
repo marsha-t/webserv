@@ -30,3 +30,32 @@ const std::vector<std::string> &ServerConfig::getServerNames(void) const { retur
 const std::vector<Route> &ServerConfig::getRoutes(void) const { return _routes; }
 const std::map<int, std::string> &ServerConfig::getErrorPages(void) const { return _errorPages; }
 unsigned int ServerConfig::getClientMaxBodySize(void) const { return _clientMaxBodySize; }
+
+bool ServerConfig::matchRoute(const std::string &target, Route &matchedRoute) const
+{
+	size_t longestMatchLen = 0;
+	const Route *bestMatch = NULL;
+
+	for (size_t i = 0; i < _routes.size(); ++i)
+	{
+		const std::string &location = _routes[i].getLocation();
+		if (target.compare(0, location.size(), location) == 0)
+		{
+			if (location == "/" || target.size() == location.size() ||  target[location.size()] == '/')
+			{
+				if (location.size() > longestMatchLen)
+				{
+					bestMatch = &_routes[i];
+					longestMatchLen = location.size();
+				}
+			}
+		}
+	}
+	if (bestMatch)
+	{
+		matchedRoute = *bestMatch;
+		return true;
+	}
+	return false;
+}
+

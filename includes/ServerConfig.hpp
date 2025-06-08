@@ -24,6 +24,7 @@ class ServerConfig
 		void	addErrorPage(int code, const std::string &filepath);
 		void	addRoute(const Route &route);
 		void	setClientMaxBodySize(unsigned int clientMaxBodySize);
+
 		// Getters
 		const std::string &getHost(void) const;
 		int	getPort(void) const;
@@ -32,6 +33,9 @@ class ServerConfig
 		const std::map<int, std::string> &getErrorPages(void) const;
 		unsigned int getClientMaxBodySize(void) const;
 
+		// Others
+		bool matchRoute(const std::string &target, Route &matchedRoute) const;
+		
 	private:
 		std::string	_host;
 		int	_port;
