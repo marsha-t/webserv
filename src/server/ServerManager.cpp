@@ -26,9 +26,10 @@ ServerManager &ServerManager::operator=(const ServerManager &obj)
 
 void	ServerManager::setup(void)
 {
+	size_t i = 0;
 	try
 	{
-		for (size_t i = 0; i < _servers.size(); ++i)
+		for (; i < _servers.size(); ++i)
 		{
 			_servers[i].initSocket();
 			_serverFDs.push_back(_servers[i].getServerFD());
@@ -36,7 +37,13 @@ void	ServerManager::setup(void)
 	}
 	catch (const std::exception &e)
 	{
-		std::cerr << "Error setting up server[" << i << "]: " << e.what() << std::endl;
+		std::cerr << "Error setting up server[" << i << "] — ";
+		if (i < _servers.size())
+		{
+			const ServerConfig& cfg = _servers[i].getConfig();
+			std::cerr << "host: " << cfg.getHost() << ", port: " << cfg.getPort() << " — ";
+		}
+		std::cerr << e.what() << std::endl;
 	}
 }
 
@@ -60,7 +67,12 @@ void	ServerManager::start(void)
 		for (size_t i = 0; i < fds.size(); ++i)
 		{
 			int fd = fds[i].fd;
-			if (fds[i].revents & POLLIN)
+			if (fds[i].revents & (POLLERR | POLLHUP | POLLNVAL)) // errors
+			{
+				cleanupClient(fd, fds, i);
+				continue;
+			}
+			else if (fds[i].revents & POLLIN) // to check after errors; in case both coexist
 			{
 				if (isListeningSocket(fd))
 					acceptNewClient(fd, fds);
@@ -69,17 +81,11 @@ void	ServerManager::start(void)
 					Request req;
 					if (!handleClientRead(fd, req))
 					{
-						close(fd);
-						fds.erase(fds.begin() + i);
-						_clientToServer.erase(fd)
-						--i;
+						cleanupClient(fd, fds, i);
 						continue;
 					}
 					processClientRequest(fd, req);
-					close(fd);
-					fds.erase(fds.begin() + i);
-					_clientToServer.erase(fd)
-					--i;
+					cleanupClient(fd, fds, i);
 				}
 			}
 		}
@@ -96,7 +102,7 @@ bool ServerManager::isListeningSocket(int fd) const
 	return false;
 }
 
-void ServerManager::acceptNewClient(int clientFD, std::vector<pollfd>& fds)
+void ServerManager::acceptNewClient(int serverFD, std::vector<pollfd>& fds)
 {
 	int clientFD = accept(serverFD, NULL, NULL);
 	if (clientFD < 0)
@@ -117,6 +123,7 @@ void ServerManager::acceptNewClient(int clientFD, std::vector<pollfd>& fds)
 		_clientToServer[clientFD] = server;
 }
 
+// Returns false if clientFD should be closed
 bool ServerManager::handleClientRead(int clientFD, Request& requestOut)
 {
 	char buffer[1024];
@@ -130,7 +137,7 @@ bool ServerManager::handleClientRead(int clientFD, Request& requestOut)
 		{
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				break; // No more data for now — return to poll()
-			perror("read error"); // throw std::runtime_error ?
+			perror("read error"); // TODO throw std::runtime_error ?
 			return false;
 		}
 		else if (bytesRead == 0) // client disconnected
@@ -142,9 +149,8 @@ bool ServerManager::handleClientRead(int clientFD, Request& requestOut)
 			break;
 	}
 
-	// If we still haven't received the full request, return and wait for more
 	if (_clientBuffers[clientFD].find("\r\n\r\n") == std::string::npos)
-		return true; // keep polling for more data
+		return true;
 
 	if (!requestOut.parse(_clientBuffers[clientFD]))
 	{
@@ -191,5 +197,26 @@ void ServerManager::processClientRequest(int clientFD, const Request& request)
 	ssize_t bytesSent = write(clientFD, responseStr.c_str(), responseStr.size());
 	if (bytesSent < 0)
 		perror("write failed");
+	_clientBuffers.erase(clientFD);
+	_clientRequests.erase(clientFD);
 }
 
+const Server* ServerManager::getServerByFD(int fd) const
+{
+	for (size_t i = 0; i < _servers.size(); ++i)
+	{
+		if (_servers[i].getServerFD() == fd)
+			return &_servers[i];
+	}
+	return NULL;
+}
+
+void ServerManager::cleanupClient(int fd, std::vector<struct pollfd> &fds, size_t &i)
+{
+	close(fd);
+	fds.erase(fds.begin() + i);
+	_clientToServer.erase(fd);
+	_clientBuffers.erase(fd);
+	_clientRequests.erase(fd);
+	--i;
+}

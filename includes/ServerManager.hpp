@@ -30,17 +30,19 @@ class ServerManager
 		std::map<int, const Server*> _clientToServer;
 		std::map<int, std::string> _clientBuffers;
 		std::map<int, Request> _clientRequests;
-		std::map<int, Response> _clientResponses;
-		std::set<int> _closingClients;
+		// TODO to support partial writes (writing in chunks and resume later), and
+		// 		persistent connections (Connection: keep-alive)
+		// std::map<int, Response> _clientResponses
+		
+		// TODO to track which connections should close after response is fully sent
+		// std::set<int> _closingClients;
 			
 		bool isListeningSocket(int fd) const;
-		void acceptNewClient(int clientFD, std::vector<pollfd>& fds)
-		bool handleClientRead(int clientFD);
-		const Server* getServerByFD(int fd) const;
-
 		void acceptNewClient(int serverFD, std::vector<struct pollfd> &fds);
 		bool handleClientRead(int clientFD, Request &requestOut);
 		void processClientRequest(int clientFD, const Request &request);
+		const Server* getServerByFD(int fd) const;
+		void cleanupClient(int fd, std::vector<struct pollfd> &fds, size_t &i);
 
 
 };
