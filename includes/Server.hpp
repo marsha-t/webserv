@@ -9,7 +9,8 @@ class Server
 		// Constructor
 		Server(void);
 		Server(const Server &obj);
-		Server(const ServerConfig &config);
+		Server(const ServerConfig &configs);
+		Server(const std::vector<ServerConfig> &configs);
 
 		// Operator
 		Server &operator=(const Server &obj);
@@ -19,15 +20,17 @@ class Server
 		
 		// Getters
 		int getServerFD(void) const;
-		const ServerConfig &getConfig(void) const;
+		const std::vector<ServerConfig> &getConfigs(void) const;
 		
 		// Others
 		void initSocket(void);
+		const ServerConfig& selectServer(const std::string &hostHeader) const;
 
 	private: 
 		int _serverFD;
-		ServerConfig _config;
-	
+		std::vector<ServerConfig> _configs;
+		std::map<std::string, ServerConfig> _nameToConfig;
+
 };
 
 #endif

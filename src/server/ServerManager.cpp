@@ -184,7 +184,7 @@ void ServerManager::processClientRequest(int clientFD, const Request& request)
 		std::cerr << "No server config found for client fd: " << clientFD << std::endl;
 		return;
 	}
-	const ServerConfig& config = it->second->selectServer();
+	const ServerConfig& config = it->second->selectServer(request.getHeader("Host"));
 
 	// Match route (simplified for now)
 	Route matchedRoute;
