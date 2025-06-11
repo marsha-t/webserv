@@ -26,7 +26,6 @@ class ServerManager
 		
 	private:
 		std::vector<Server> _servers;
-		std::vector<int> _serverFDs;
 		std::map<int, const Server*> _clientToServer;
 		std::map<int, std::string> _clientBuffers;
 		std::map<int, Request> _clientRequests;
@@ -38,6 +37,7 @@ class ServerManager
 		// std::set<int> _closingClients;
 			
 		bool isListeningSocket(int fd) const;
+		void pollLoop(std::vector<struct pollfd> &fds);
 		void acceptNewClient(int serverFD, std::vector<struct pollfd> &fds);
 		bool handleClientRead(int clientFD, Request &requestOut);
 		void processClientRequest(int clientFD, const Request &request);

@@ -129,16 +129,19 @@ int	main(int argc, char **argv)
 		ConfigParser parser(configFile);
 		parser.parse();
 		std::vector<ServerConfig> configs = parser.getServers();
-		std::vector<Server> servers;
-		for (size_t i = 0; i < configs.size(); ++i)
-		{
-			Server indivServer(configs[i]);
-			indivServer.initSocket();
-			servers.push_back(indivServer);
-		}
-		// pollLoop(server); // handles requests etc
-		while (true)
-			pause();
+		ServerManager manager(configs);
+		manager.setup();
+		manager.start();
+		// std::vector<Server> servers;
+		// for (size_t i = 0; i < configs.size(); ++i)
+		// {
+		// 	Server indivServer(configs[i]);
+		// 	indivServer.initSocket();
+		// 	servers.push_back(indivServer);
+		// }
+		// // pollLoop(server); // handles requests etc
+		// while (true)
+		// 	pause();
 	}
 	catch (std::exception &e)
 	{

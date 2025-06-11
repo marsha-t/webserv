@@ -1,17 +1,27 @@
 #include "../../includes/ServerManager.hpp"
 
 ServerManager::ServerManager(void) {}
-ServerManager::ServerManager(const ServerManager &obj): _servers(obj._servers), _serverFDs(obj._serverFDs) {}
+ServerManager::ServerManager(const ServerManager &obj): _servers(obj._servers), _clientToServer(obj._clientToServer), _clientBuffers(obj._clientBuffers), _clientRequests(obj._clientRequests) {}
 ServerManager::ServerManager(const std::vector<ServerConfig> &configs)
 {
+	
+	std::map<std::pair<std::string, int>, std::vector<ServerConfig> > grouped;
 	for (size_t i = 0; i < configs.size(); ++i)
-		_servers.push_back(Server(configs[i]));
+	{
+		std::pair<std::string, int> key = std::make_pair(configs[i].getHost(), configs[i].getPort());
+		grouped[key].push_back(configs[i]);
+	}
+	for (std::map<std::pair<std::string, int>, std::vector<ServerConfig> >::iterator it = grouped.begin(); it != grouped.end(); ++it)
+	{
+		Server server(it->second);
+		_servers.push_back(server);
+	}
 }
 
 ServerManager::~ServerManager(void) 
 {
-	for (size_t i = 0; i < _serverFDs.size(); ++i)
-		close(_serverFDs[i]);
+	for (size_t i = 0; i < _servers.size(); ++i)
+		close(_servers[i].getServerFD());
 }
 
 ServerManager &ServerManager::operator=(const ServerManager &obj)
@@ -19,7 +29,9 @@ ServerManager &ServerManager::operator=(const ServerManager &obj)
 	if (this != &obj)
 	{
 		_servers = obj._servers;
-		_serverFDs = obj._serverFDs;
+		_clientToServer = obj._clientToServer;
+		_clientBuffers = obj._clientBuffers;
+		_clientRequests = obj._clientRequests;
 	}
 	return (*this);
 }
@@ -32,7 +44,6 @@ void	ServerManager::setup(void)
 		for (; i < _servers.size(); ++i)
 		{
 			_servers[i].initSocket();
-			_serverFDs.push_back(_servers[i].getServerFD());
 		}
 	}
 	catch (const std::exception &e)
@@ -58,7 +69,11 @@ void	ServerManager::start(void)
 		serverPollFD.revents = 0;
 		fds.push_back(serverPollFD);
 	}	
+	pollLoop(fds);
+}
 
+void ServerManager::pollLoop(std::vector<struct pollfd> &fds)
+{
 	while (true)
 	{
 		int ready = poll(&fds[0], fds.size(), -1);
@@ -94,9 +109,9 @@ void	ServerManager::start(void)
 
 bool ServerManager::isListeningSocket(int fd) const
 {
-	for (size_t i = 0; i < _serverFDs.size(); ++i)
+	for (size_t i = 0; i < _servers.size(); ++i)
 	{
-		if (_serverFDs[i] == fd)
+		if (_servers[i].getServerFD() == fd)
 			return true;
 	}
 	return false;
@@ -106,11 +121,11 @@ void ServerManager::acceptNewClient(int serverFD, std::vector<pollfd>& fds)
 {
 	int clientFD = accept(serverFD, NULL, NULL);
 	if (clientFD < 0)
-		throw std::runtime_error("Accept failed"); // consider changing to perror
+		throw std::runtime_error("Accept failed"); // TODO consider changing to perror
 	if (fcntl(clientFD, F_SETFL, O_NONBLOCK) < 0)
 	{
 		close(clientFD);
-		throw std::runtime_error("fcntl failed"); // consider changing to perror
+		throw std::runtime_error("fcntl failed"); // TODO consider changing to perror
 	}
 	struct pollfd clientPollFD;
 	clientPollFD.fd = clientFD;
@@ -169,11 +184,11 @@ void ServerManager::processClientRequest(int clientFD, const Request& request)
 		std::cerr << "No server config found for client fd: " << clientFD << std::endl;
 		return;
 	}
-	const ServerConfig& config = it->second->getConfig();
+	const ServerConfig& config = it->second->selectServer();
 
 	// Match route (simplified for now)
 	Route matchedRoute;
-	if (!config.matchRoute(request.getTarget(), matchedRoute)) // TODO to build matchRoute
+	if (!config.matchRoute(request.getTarget(), matchedRoute))
 	{
 		std::cerr << "No matching route for URI: " << request.getTarget() << std::endl;
 		// TODO: Build 404 response here
