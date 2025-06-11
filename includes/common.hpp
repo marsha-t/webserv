@@ -8,6 +8,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 // Utils
 #include "utils.hpp"

@@ -6,6 +6,7 @@
 #include "../includes/IRequestHandler.hpp"
 #include "../includes/StaticFileHandler.hpp"
 #include "../includes/Server.hpp"
+#include "../includes/ServerManager.hpp"
 
 void    errorMsg(std::string msg)
 {

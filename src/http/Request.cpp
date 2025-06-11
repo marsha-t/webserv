@@ -20,6 +20,14 @@ const std::string &Request::getMethod() const { return _method; }
 const std::string &Request::getTarget() const { return _target; }
 const std::string &Request::getVersion() const { return _version; }
 const std::map<std::string, std::string>&Request::getHeaders() const { return _headers; }
+std::string Request::getHeader(const std::string &key) const
+{
+	std::map<std::string, std::string>::const_iterator it = _headers.find(key);
+	if (it != _headers.end())
+		return it->second;
+	return "";
+}
+
 const std::string &Request::getBody() const { return _body; }
 
 bool	Request::parse(const std::string &raw)

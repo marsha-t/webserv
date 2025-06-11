@@ -51,8 +51,12 @@ void	ServerManager::setup(void)
 		std::cerr << "Error setting up server[" << i << "] — ";
 		if (i < _servers.size())
 		{
-			const ServerConfig& cfg = _servers[i].getConfig();
-			std::cerr << "host: " << cfg.getHost() << ", port: " << cfg.getPort() << " — ";
+			const std::vector<ServerConfig> &configs = _servers[i].getConfigs();
+			if (!configs.empty())
+			{
+				std::cerr << "host: " << configs[0].getHost()
+						  << ", port: " << configs[0].getPort() << " — ";
+			}
 		}
 		std::cerr << e.what() << std::endl;
 	}

@@ -1,6 +1,7 @@
 #include "../../includes/Server.hpp"
 
 Server::Server(void): _serverFD(-1) {}
+
 Server::Server(const Server &obj): _serverFD(obj._serverFD), _configs(obj._configs)
 {
 	for (size_t i = 0; i < _configs.size(); ++i)
@@ -16,18 +17,15 @@ Server::Server(const Server &obj): _serverFD(obj._serverFD), _configs(obj._confi
 	}
 }
 
-
-Server::Server(const Server &obj): _serverFD(obj._serverFD), _configs(obj._configs)
+Server::Server(const std::vector<ServerConfig> &configs): _serverFD(-1), _configs(configs)
 {
-	for (size_t i = 0; i < _configs.size(); ++i)
+	for (size_t i = 0; i < configs.size(); ++i)
 	{
-		const std::vector<std::string> &names = _configs[i].getServerNames();
+		const std::vector<std::string> &names = configs[i].getServerNames();
 		for (size_t j = 0; j < names.size(); ++j)
 		{
-			if (_nameToConfig.count(names[j]) == 0)
-				_nameToConfig.insert(std::make_pair(names[j], _configs[i]));
-			else 
-				std::cerr << "Warning: Duplicate server_name '" << names[j] << "' ignored\n";
+			if (_nameToConfig.count(names[j]) == 0)  // only insert first occurrence
+				_nameToConfig.insert(std::make_pair(names[j], configs[i]));
 		}
 	}
 }

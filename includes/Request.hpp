@@ -21,6 +21,7 @@ class Request
         const std::string &getTarget() const;
         const std::string &getVersion() const;
         const std::map<std::string, std::string>& getHeaders() const;
+        std::string getHeader(const std::string &key) const;
         const std::string &getBody() const;
         
         // Other functions

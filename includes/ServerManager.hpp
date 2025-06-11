@@ -3,6 +3,10 @@
 
 #include "common.hpp"
 #include "ServerConfig.hpp"
+#include "Server.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "RequestDispatcher.hpp"
 
 class ServerManager
 {

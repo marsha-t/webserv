@@ -12,7 +12,7 @@ SRC         := $(SRC_DIR)/main.cpp \
 				$(SRC_DIR)/config/ServerConfig.cpp $(SRC_DIR)/config/Route.cpp \
 				$(SRC_DIR)/config/ConfigParser.cpp \
 				$(SRC_DIR)/handler/RequestDispatcher.cpp $(SRC_DIR)/handler/StaticFileHandler.cpp  \
-				$(SRC_DIR)/server/Server.cpp 
+				$(SRC_DIR)/server/Server.cpp $(SRC_DIR)/server/ServerManager.cpp 
 				
 
 
