@@ -30,9 +30,10 @@ class ServerManager
 		
 	private:
 		std::vector<Server> _servers;
-		std::map<int, const Server*> _clientToServer;
-		std::map<int, std::string> _clientBuffers;
-		std::map<int, Request> _clientRequests;
+		std::map<int, const Server*> _clientToServer; // map each client connection FD after accept to Server that accepted it; needed to select right ServerConfig later
+		std::map<int, std::string> _clientBuffers; // raw data received from each client
+		std::map<int, Request> _clientRequests; // parsed request for each clientFD
+		
 		// TODO to support partial writes (writing in chunks and resume later), and
 		// 		persistent connections (Connection: keep-alive)
 		// std::map<int, Response> _clientResponses
@@ -43,12 +44,11 @@ class ServerManager
 		bool isListeningSocket(int fd) const;
 		void pollLoop(std::vector<struct pollfd> &fds);
 		void acceptNewClient(int serverFD, std::vector<struct pollfd> &fds);
-		bool handleClientRead(int clientFD, Request &requestOut);
-		void processClientRequest(int clientFD, const Request &request);
-		const Server* getServerByFD(int fd) const;
+		bool handleClientRead(int clientFD);
+
+		void processClientRequest(int clientFD, Request &request);
+		const Server* getListeningServerByFD(int fd) const;
 		void cleanupClient(int fd, std::vector<struct pollfd> &fds, size_t &i);
-
-
 };
 
 #endif

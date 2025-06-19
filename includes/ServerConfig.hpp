@@ -23,7 +23,7 @@ class ServerConfig
 		void	addServerName(const std::string &serverName);
 		void	addErrorPage(int code, const std::string &filepath);
 		void	addRoute(const Route &route);
-		void	setClientMaxBodySize(unsigned int clientMaxBodySize);
+		void	setClientMaxBodySize(std::size_t clientMaxBodySize);
 
 		// Getters
 		const std::string &getHost(void) const;
@@ -31,7 +31,8 @@ class ServerConfig
 		const std::vector<std::string> &getServerNames(void) const;
 		const std::vector<Route> &getRoutes(void) const;
 		const std::map<int, std::string> &getErrorPages(void) const;
-		unsigned int getClientMaxBodySize(void) const;
+		std::size_t getClientMaxBodySize(void) const;
+		bool hasClientMaxBodySize(void) const;
 
 		// Others
 		bool matchRoute(const std::string &target, Route &matchedRoute) const;
@@ -42,7 +43,8 @@ class ServerConfig
 		std::vector<std::string> _serverNames;
 		std::map<int, std::string> _errorPages;
 		std::vector<Route> _routes;
-		unsigned int _clientMaxBodySize;
+		std::size_t _clientMaxBodySize;
+		bool	_hasClientMaxBodySize;
 
 };
 

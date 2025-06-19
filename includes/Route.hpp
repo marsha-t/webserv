@@ -25,6 +25,7 @@ class Route
 		void	setUploadDir(const std::string &dir);
 		void	setRedirect(int statusCode, const std::string &url);
 		void	addCGI(const std::string &ext, const std::string &exec);
+		void	setClientMaxBodySize(std::size_t clientMaxBodySize);
 		// ...
 
 		// Getters
@@ -38,6 +39,8 @@ class Route
 		int getRedirectStatusCode(void) const;
 		const std::string &getRedirectURL(void) const;
 		const std::map<std::string, std::string> &getCGI(void) const;
+		std::size_t getClientMaxBodySize(void) const;
+		bool hasClientMaxBodySize(void) const;
 		// ...
 
 	private:
@@ -51,6 +54,8 @@ class Route
 		int _redirectStatusCode;
 		std::string _redirectURL;
 		std::map<std::string, std::string> _cgi;
+		std::size_t _clientMaxBodySize;
+		bool	_hasClientMaxBodySize;
 		// ...
 };
 

@@ -1,9 +1,10 @@
 #include "../../includes/Route.hpp"
 
-Route::Route(void) {}
+Route::Route(void): _hasClientMaxBodySize(false) {}
 Route::Route(const Route &obj): _location(obj._location), _root(obj._root), _methods(obj._methods), \
  _indexFiles(obj._indexFiles), _autoindex(obj._autoindex), _uploadDir(obj._uploadDir), \
- _isRedirect(obj._isRedirect), _redirectStatusCode(obj._redirectStatusCode), _redirectURL(obj._redirectURL), _cgi(obj._cgi) {}
+ _isRedirect(obj._isRedirect), _redirectStatusCode(obj._redirectStatusCode), _redirectURL(obj._redirectURL), _cgi(obj._cgi), \
+ _clientMaxBodySize(obj._clientMaxBodySize), _hasClientMaxBodySize(obj._hasClientMaxBodySize) {}
 Route::~Route(void) {}
 Route &Route::operator=(const Route &obj) 
 {
@@ -19,6 +20,8 @@ Route &Route::operator=(const Route &obj)
 		_redirectStatusCode = obj._redirectStatusCode;
 		_redirectURL = obj._redirectURL;
 		_cgi = obj._cgi;
+		_clientMaxBodySize = obj._clientMaxBodySize;
+		_hasClientMaxBodySize = obj._hasClientMaxBodySize;
 	}
 	return (*this);
 }
@@ -41,9 +44,12 @@ void	Route::setRedirect(int statusCode, const std::string &url)
 	_redirectStatusCode = statusCode;
 	_redirectURL = url;
 }
-
-
 void	Route::addCGI(const std::string &ext, const std::string &exec) { _cgi[ext] = exec; }
+void	Route::setClientMaxBodySize(std::size_t clientMaxBodySize) 
+{ 
+	_clientMaxBodySize = clientMaxBodySize; 
+	_hasClientMaxBodySize = true;
+}
 
 const std::string &Route::getLocation(void) const { return _location; }
 const std::string &Route::getRoot(void) const { return _root; }
@@ -55,3 +61,5 @@ bool Route::isRedirect(void) const { return _isRedirect; }
 int Route::getRedirectStatusCode(void) const { return _redirectStatusCode; }
 const std::string &Route::getRedirectURL(void) const { return _redirectURL; }
 const std::map<std::string, std::string> &Route::getCGI(void) const { return _cgi; }
+std::size_t Route::getClientMaxBodySize(void) const { return _clientMaxBodySize; }
+bool Route::hasClientMaxBodySize(void) const { return _hasClientMaxBodySize; }

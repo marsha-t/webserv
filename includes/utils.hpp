@@ -1,6 +1,8 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include "common.hpp"
+
 template <typename T>
 std::string toString(T n)
 {
@@ -8,5 +10,7 @@ std::string toString(T n)
 	oss << n;
 	return oss.str();
 }
+
+std::string toLower(const std::string &s);
 
 #endif

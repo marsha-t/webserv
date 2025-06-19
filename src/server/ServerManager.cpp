@@ -36,6 +36,7 @@ ServerManager &ServerManager::operator=(const ServerManager &obj)
 	return (*this);
 }
 
+/// Initialises sockets on each Server and called once at startup in main()
 void	ServerManager::setup(void)
 {
 	size_t i = 0;
@@ -62,6 +63,8 @@ void	ServerManager::setup(void)
 	}
 }
 
+// Sets up initial pollfd array for each serverFD
+// Calls pollLoop 
 void	ServerManager::start(void)
 {
 	std::vector<pollfd> fds;
@@ -76,6 +79,9 @@ void	ServerManager::start(void)
 	pollLoop(fds);
 }
 
+// Iterates over all FDs: 
+// - if it's a listening socket, accept a new client
+// - if it's a client socket, read and process request
 void ServerManager::pollLoop(std::vector<struct pollfd> &fds)
 {
 	while (true)
@@ -83,6 +89,7 @@ void ServerManager::pollLoop(std::vector<struct pollfd> &fds)
 		int ready = poll(&fds[0], fds.size(), -1);
 		if (ready < 0)
 			throw std::runtime_error("Poll failed");
+		
 		for (size_t i = 0; i < fds.size(); ++i)
 		{
 			int fd = fds[i].fd;
@@ -93,17 +100,29 @@ void ServerManager::pollLoop(std::vector<struct pollfd> &fds)
 			}
 			else if (fds[i].revents & POLLIN) // to check after errors; in case both coexist
 			{
-				if (isListeningSocket(fd))
-					acceptNewClient(fd, fds);
-				else
+				try
 				{
-					Request req;
-					if (!handleClientRead(fd, req))
+					if (isListeningSocket(fd))
+						acceptNewClient(fd, fds);
+					else
 					{
-						cleanupClient(fd, fds, i);
-						continue;
+						if (!handleClientRead(fd))
+						{
+							cleanupClient(fd, fds, i);
+							continue;
+						}
+						std::map<int, Request>::iterator it = _clientRequests.find(fd);
+						if (it != _clientRequests.end())
+						{
+							processClientRequest(fd, it->second);
+							cleanupClient(fd, fds, i);
+							
+						}
 					}
-					processClientRequest(fd, req);
+				}
+				catch (const std::exception &e)
+				{
+					std::cerr << "Error handling fd " << fd << ": " << e.what() << std::endl;
 					cleanupClient(fd, fds, i);
 				}
 			}
@@ -121,6 +140,8 @@ bool ServerManager::isListeningSocket(int fd) const
 	return false;
 }
 
+// Accepts client connection and adds clientFD to fds for monitoring
+// Stores mapping of client to server in _clientToServer
 void ServerManager::acceptNewClient(int serverFD, std::vector<pollfd>& fds)
 {
 	int clientFD = accept(serverFD, NULL, NULL);
@@ -137,13 +158,16 @@ void ServerManager::acceptNewClient(int serverFD, std::vector<pollfd>& fds)
 	clientPollFD.revents = 0;
 	fds.push_back(clientPollFD);
 
-	const Server *server = getServerByFD(serverFD);
+	const Server *server = getListeningServerByFD(serverFD);
 	if (server)
 		_clientToServer[clientFD] = server;
 }
 
-// Returns false if clientFD should be closed
-bool ServerManager::handleClientRead(int clientFD, Request& requestOut)
+// Reads incoming data from client socket 
+// Stores raw data into _clientBuffers
+// If headers are complete, parses into Request and stores it in _clientRequests
+// If headers are incomplete, return to poll loop to read some more 
+bool ServerManager::handleClientRead(int clientFD)
 {
 	char buffer[1024];
 	ssize_t bytesRead;
@@ -156,7 +180,7 @@ bool ServerManager::handleClientRead(int clientFD, Request& requestOut)
 		{
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				break; // No more data for now — return to poll()
-			perror("read error"); // TODO throw std::runtime_error ?
+			perror("read error"); // TODO throw std::runtime_error?
 			return false;
 		}
 		else if (bytesRead == 0) // client disconnected
@@ -164,48 +188,73 @@ bool ServerManager::handleClientRead(int clientFD, Request& requestOut)
 
 		buffer[bytesRead] = '\0';
 		_clientBuffers[clientFD] += buffer;
-		if (_clientBuffers[clientFD].find("\r\n\r\n") != std::string::npos)
-			break;
 	}
 
-	if (_clientBuffers[clientFD].find("\r\n\r\n") == std::string::npos)
-		return true;
-
-	if (!requestOut.parse(_clientBuffers[clientFD]))
+	// If headers are received, parse into Request
+	if (_clientBuffers[clientFD].find("\r\n\r\n") != std::string::npos)
 	{
-		std::cerr << "Failed to parse request from fd: " << clientFD << std::endl;
-		return false;
+		Request req;
+		if (!req.parse(_clientBuffers[clientFD]))
+			return false; // invalid request → close connection
+		_clientRequests[clientFD] = req;
 	}
-	_clientRequests[clientFD] = requestOut;
+	// If headers not received, return true to continue reading
 	return true;
 }
 
-void ServerManager::processClientRequest(int clientFD, const Request& request)
-{
+// Matches correct ServerConfig and Route
+// Obtain max body size if specified 
+// Validate request body (using max body size + other checks)
+// Dispatches request to appropriate handler
+void ServerManager::processClientRequest(int clientFD, Request& request) {
 	std::map<int, const Server*>::iterator it = _clientToServer.find(clientFD);
-	if (it == _clientToServer.end())
-	{
-		std::cerr << "No server config found for client fd: " << clientFD << std::endl;
+	if (it == _clientToServer.end()) {
+		std::cerr << "No server for fd " << clientFD << std::endl;
 		return;
 	}
-	const ServerConfig& config = it->second->selectServer(request.getHeader("Host"));
+	const Server* server = it->second;
+	if (!server) {
+		std::cerr << "No server for fd " << clientFD << std::endl;
+		return;
+	}
 
-	// Match route (simplified for now)
+	const ServerConfig& selectedConfig = server->selectServer(request.getHeader("Host"));
+
 	Route matchedRoute;
-	if (!config.matchRoute(request.getTarget(), matchedRoute))
-	{
-		std::cerr << "No matching route for URI: " << request.getTarget() << std::endl;
-		// TODO: Build 404 response here
+	if (!selectedConfig.matchRoute(request.getTarget(), matchedRoute)) {
+		Response res;
+		res.setError(404, "Not Found");
+		std::string responseStr = res.toString();
+		write(clientFD, responseStr.c_str(), responseStr.size());
 		return;
 	}
 
+	// Validate request body: first determine correct client_max_body_size, before running validateBody()
+	std::size_t maxBodySize;
+	if (matchedRoute.hasClientMaxBodySize())
+		maxBodySize = matchedRoute.getClientMaxBodySize();
+	else if (selectedConfig.hasClientMaxBodySize())
+		maxBodySize = selectedConfig.getClientMaxBodySize();
+	else
+		maxBodySize = DEFAULT_MAX_BODY_SIZE;
+
+	if (!request.validateBody(maxBodySize)) {
+		Response res;
+		res.setError(413, "Payload Too Large");
+		std::string responseStr = res.toString();
+		write(clientFD, responseStr.c_str(), responseStr.size());
+		return;
+	}
+
+	// Select handler and generate response
 	Response response;
 	RequestDispatcher dispatcher;
 	IRequestHandler* handler = dispatcher.selectHandler(request, matchedRoute);
-	if (!handler)
-	{
-		std::cerr << "No valid handler found for request" << std::endl;
-		// TODO: Build 501 Not Implemented
+
+	if (!handler) {
+		response.setError(501, "Not Implemented");
+		std::string responseStr = response.toString();
+		write(clientFD, responseStr.c_str(), responseStr.size());
 		return;
 	}
 
@@ -216,11 +265,14 @@ void ServerManager::processClientRequest(int clientFD, const Request& request)
 	ssize_t bytesSent = write(clientFD, responseStr.c_str(), responseStr.size());
 	if (bytesSent < 0)
 		perror("write failed");
+
 	_clientBuffers.erase(clientFD);
 	_clientRequests.erase(clientFD);
 }
 
-const Server* ServerManager::getServerByFD(int fd) const
+// Used to get Server object for a given listening socket
+// Does not work if given a clientFD
+const Server* ServerManager::getListeningServerByFD(int fd) const
 {
 	for (size_t i = 0; i < _servers.size(); ++i)
 	{
@@ -230,6 +282,7 @@ const Server* ServerManager::getServerByFD(int fd) const
 	return NULL;
 }
 
+// Closes and removes client FD from ServerManager
 void ServerManager::cleanupClient(int fd, std::vector<struct pollfd> &fds, size_t &i)
 {
 	close(fd);

@@ -25,6 +25,8 @@
 #include <vector>
 #include <algorithm>
 
+// Static Const Variables
+static const std::size_t DEFAULT_MAX_BODY_SIZE = 1 * 1024 * 1024; // 1MB
 
 // Colours
 #define RESET   "\033[0m"

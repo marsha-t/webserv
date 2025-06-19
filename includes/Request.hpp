@@ -3,6 +3,8 @@
 
 #include "common.hpp"
 
+#define MAX_CHUNK_SIZE 100000000
+
 class Request
 {
     public:
@@ -23,9 +25,11 @@ class Request
         const std::map<std::string, std::string>& getHeaders() const;
         std::string getHeader(const std::string &key) const;
         const std::string &getBody() const;
-        
+        int getParseErrorCode(void) const;
+
         // Other functions
         bool    parse(const std::string &raw); 
+        bool validateBody(std::size_t maxBodySize);
         void    printMembers(void) const;
         
     private:
@@ -34,11 +38,16 @@ class Request
         std::string _version;
         std::map<std::string, std::string> _headers;
         std::string _body;
+        int _parseErrorCode;
 
         std::string trimR(const std::string &line);
         bool checkMethod(const std::string &method);
         bool checkTarget(const std::string &target);
         bool checkVersion(const std::string &version);
+        bool parseRequestLine(std::istream &stream);
+        bool parseHeaders(std::istream &stream);
+        bool decodeChunkedBody(void);
+
 
 };
 
