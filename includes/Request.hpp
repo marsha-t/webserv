@@ -26,12 +26,15 @@ class Request
         std::string getHeader(const std::string &key) const;
         const std::string &getBody() const;
         int getParseErrorCode(void) const;
+        std::string getQueryString(void) const;
+        const std::map<std::string, std::string>& getUploadedFiles() const;
 
         // Other functions
         bool    parse(const std::string &raw); 
         bool validateBody(std::size_t maxBodySize);
         void    printMembers(void) const;
-        
+        const std::map<std::string, std::string>& getFormData() const;
+
     private:
         std::string _method;
         std::string _target;
@@ -39,14 +42,18 @@ class Request
         std::map<std::string, std::string> _headers;
         std::string _body;
         int _parseErrorCode;
+        std::map<std::string, std::string> _formData;
+        std::map<std::string, std::string> _uploadedFiles;
 
-        std::string trimR(const std::string &line);
+        #include "utils.hpp"
         bool checkMethod(const std::string &method);
         bool checkTarget(const std::string &target);
         bool checkVersion(const std::string &version);
         bool parseRequestLine(std::istream &stream);
         bool parseHeaders(std::istream &stream);
         bool decodeChunkedBody(void);
+        void parseBody(void);
+        void parseMultipartFormData(const std::string &boundary);
 
 
 };

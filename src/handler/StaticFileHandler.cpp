@@ -1,14 +1,7 @@
 #include "../../includes/StaticFileHandler.hpp"
 
-StaticFileHandler::StaticFileHandler(void) {}
-StaticFileHandler::StaticFileHandler(const StaticFileHandler &obj): _route(obj._route) {}
-StaticFileHandler::StaticFileHandler(const Route &route): _route(route) {}
-StaticFileHandler &StaticFileHandler::operator=(const StaticFileHandler &obj)
-{
-	if (this != &obj)
-		_route = obj._route;
-	return *this;
-}
+StaticFileHandler::StaticFileHandler(const StaticFileHandler &obj): _route(obj._route), _config(obj._config) {}
+StaticFileHandler::StaticFileHandler(const Route &route, const ServerConfig &config): _route(route), _config(config) {}
 StaticFileHandler::~StaticFileHandler(void) {}
 
 /*
@@ -27,25 +20,32 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 	const std::vector<std::string> &allowed = _route.getMethods();
 	if (std::find(allowed.begin(), allowed.end(), req.getMethod()) == allowed.end())
 	{
-		res.setError(405, "Method Not Allowed");
+		res.setError(405, "Method Not Allowed", _config);
 		return ;
 	}
-	std::string path = _route.getRoot() + "/" + req.getTarget();
+	std::string path = _route.getRoot() + req.getTarget().substr(_route.getLocation().length());
 
 	if (!isSafePath(path))
 	{
-		res.setError(403, "Forbidden");
+		res.setError(403, "Forbidden", _config);
 		return ;
 	}
 	struct stat s;
-	if (stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode)) 
+	if (stat(path.c_str(), &s) != 0) // File or directory does not exist
+	{
+		res.setError(404, "Not Found", _config);
+		return;
+	}
+
+	if (S_ISDIR(s.st_mode)) 
 	{
 		const std::vector<std::string> &indexes = _route.getIndexFiles();
 		bool found = false;
 		for (size_t i = 0; i < indexes.size(); ++i)
 		{
 			std::string candidate = path + "/" + indexes[i];
-			if (fileExists(candidate, req.getMethod()))
+			struct stat index_s;
+			if (stat(candidate.c_str(), &index_s) == 0 && S_ISREG(index_s.st_mode) && access(candidate.c_str(), R_OK) == 0)
 			{
 				path = candidate;
 				found = true;
@@ -56,41 +56,53 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 		{
 			if (_route.getAutoindex())
 			{
-				// TODO: implement autoindex
+				std::string listing = generateDirectoryListing(path, req.getTarget());
 				res.setStatusLine(200, "OK");
-				res.setHeader("Content-Type", "text/plain");
-				res.setBody("Autoindex placeholder");
+				res.setHeader("Content-Type", "text/html");
+				res.setBody(listing);
 				return;
 			}
 			else
 			{
-				res.setStatusLine(403, "Forbidden");
-				res.setHeader("Content-Type", "text/html");
-				res.setBody("<html><head><title>403 Forbidden</title></head>"
-							"<body><center><h1>403 Forbidden</h1></center>"
-							"<hr><center>webserv</center></body></html>");
+				res.setError(403, "Forbidden", _config);
 				return;
 			}
 		}
 	}
-	if (!fileExists(path, req.getMethod()))
+
+	if (req.getMethod() == "DELETE")
 	{
-		res.setError(404, "Not Found");
+		if (remove(path.c_str()) != 0)
+		{
+			res.setError(500, "Internal Server Error", _config);
+			return;
+		}
+		res.setStatusLine(204, "No Content");
 		return;
 	}
+
+	// For GET/POST (non-DELETE) requests, serve the file
+	// Check read permissions
+	if (access(path.c_str(), R_OK) != 0)
+	{
+		res.setError(403, "Forbidden", _config);
+		return;
+	}
+
 	try 
 	{
 		std::string content;
 		if (!readFile(path, content))
 		{
-			res.setError(404, "Not Found");
+			res.setError(500, "Internal Server Error", _config);
+			return;
 		}
 		std::string mimeType = getMimeType(path);
 		res.setFile(content, mimeType);
 	}
 	catch (std::exception &e)
 	{
-		res.setError(500, "Internal Server Error");
+		res.setError(500, "Internal Server Error", _config);
 	}
 }
 
@@ -122,14 +134,6 @@ bool StaticFileHandler::isSafePath(const std::string &path) const
 	return false;
 }
 
-bool StaticFileHandler::fileExists(const std::string &path, const std::string &method) const
-{
-	if (access(path.c_str(), F_OK) != 0)
-		return false;
-	if (method == "GET" && access(path.c_str(), R_OK) != 0)
-		return false;
-	return true;
-}
 bool StaticFileHandler::readFile(const std::string &path, std::string &content) const
 {
 	std::ifstream file(path.c_str());
@@ -159,7 +163,7 @@ std::string StaticFileHandler::getMimeType(const std::string &filename) const
 	else if (ext == "jpg" || ext == "jpeg")
 		return "image/jpeg";
 	else if (ext == "gif")
-		return "image/gif";
+		return "image/gif";	
 	else if (ext == "txt")
 		return "text/plain";
 	else if (ext == "json")
@@ -168,4 +172,44 @@ std::string StaticFileHandler::getMimeType(const std::string &filename) const
 		return "application/pdf";
 	else
 		return "application/octet-stream";
+}
+
+#include <dirent.h>
+
+std::string StaticFileHandler::generateDirectoryListing(const std::string &dirPath, const std::string &uriPath) const
+{
+    std::string html = "<!DOCTYPE html>\n";
+    html += "<html>\n<head><title>Index of " + uriPath + "</title></head>\n";
+    html += "<body><h1>Index of " + uriPath + "</h1><hr><pre>\n";
+
+    DIR *dir = opendir(dirPath.c_str());
+    if (!dir)
+    {
+        return "Error: Could not open directory";
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL)
+    {
+        std::string name = entry->d_name;
+        if (name == ".")
+            continue;
+
+        std::string fullPath = dirPath + "/" + name;
+        std::string displayPath = uriPath;
+        if (displayPath[displayPath.length() - 1] != '/')
+            displayPath += '/';
+        displayPath += name;
+
+        struct stat s;
+        if (stat(fullPath.c_str(), &s) == 0 && S_ISDIR(s.st_mode))
+        {
+            displayPath += '/';
+        }
+        html += "<a href=\"" + displayPath + "\">" + name + "</a>\n";
+    }
+    closedir(dir);
+
+    html += "</pre><hr></body>\n</html>\n";
+    return html;
 }

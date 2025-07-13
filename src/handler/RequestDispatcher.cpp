@@ -9,14 +9,30 @@ RequestDispatcher &RequestDispatcher::operator=(const RequestDispatcher &obj)
 }
 
 RequestDispatcher::~RequestDispatcher() {}
-		IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Route &route) const
+		IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Route &route, const ServerConfig &config) const
 {
-	// if (route.isRedirect)
-	// 	return (new RedirectHandler(route));
-	// else if (isCGIRequest(req.getTarget(), route));
-	// 	return (new CGIHandler(route));
-	// else if (isUploadRequest(req.getMethod(), route))
-	// 	return (new UploadHandler(route));
-	(void) req;
-	return (new StaticFileHandler(route));
+	if (route.isRedirect())
+	{
+		std::cerr << "Selecting RedirectHandler" << std::endl;
+		return (new RedirectHandler(route, config));
+	}
+	if (req.getMethod() == "POST" && !route.getUploadDir().empty())
+	{
+		std::cerr << "Selecting UploadHandler" << std::endl;
+		return (new UploadHandler(route, config));
+	}
+
+	std::string target = req.getTarget();
+	std::string::size_type dotPos = target.find_last_of(".");
+	if (dotPos != std::string::npos)
+	{
+		std::string ext = target.substr(dotPos);
+		if (route.getCGI().count(ext))
+		{
+			std::cerr << "Selecting CgiHandler for extension: " << ext << std::endl;
+			return (new CgiHandler(route, config));
+		}
+	}
+	std::cerr << "Selecting StaticFileHandler" << std::endl;
+	return (new StaticFileHandler(route, config));
 }

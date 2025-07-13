@@ -19,6 +19,7 @@
 // #include <sys/socket.h> // for socket functions
 #include <arpa/inet.h>  // for htons, inet_pton
 #include <poll.h>
+#include <sys/wait.h>
 
 // STL
 #include <map>

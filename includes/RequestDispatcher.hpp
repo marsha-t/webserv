@@ -5,6 +5,10 @@
 #include "Request.hpp"
 #include "Route.hpp"
 #include "StaticFileHandler.hpp"
+#include "CgiHandler.hpp"
+#include "UploadHandler.hpp"
+#include "RedirectHandler.hpp"
+#include "ServerConfig.hpp"
 
 class RequestDispatcher
 {
@@ -20,7 +24,7 @@ class RequestDispatcher
 		~RequestDispatcher();
 		
 		// Others
-		IRequestHandler *selectHandler(const Request &req, const Route &route) const;
+		IRequestHandler *selectHandler(const Request &req, const Route &route, const ServerConfig &config) const;
 };
 	
 #endif

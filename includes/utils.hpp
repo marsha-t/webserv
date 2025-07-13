@@ -3,14 +3,8 @@
 
 #include "common.hpp"
 
-template <typename T>
-std::string toString(T n)
-{
-	std::ostringstream oss;
-	oss << n;
-	return oss.str();
-}
-
-std::string toLower(const std::string &s);
+std::string trimR(const std::string &line);
+std::string toString(int n);
+std::string toLower(const std::string &str);
 
 #endif

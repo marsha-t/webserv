@@ -42,13 +42,13 @@ class ServerManager
 		// std::set<int> _closingClients;
 			
 		bool isListeningSocket(int fd) const;
-		void pollLoop(std::vector<struct pollfd> &fds);
-		void acceptNewClient(int serverFD, std::vector<struct pollfd> &fds);
-		bool handleClientRead(int clientFD);
+		void	selectLoop(void);
+		void	acceptNewClient(int serverFD, fd_set &master_fds, int &max_fd);
+		bool	handleClientRead(int clientFD);
 
-		void processClientRequest(int clientFD, Request &request);
-		const Server* getListeningServerByFD(int fd) const;
-		void cleanupClient(int fd, std::vector<struct pollfd> &fds, size_t &i);
+		void	processClientRequest(int clientFD, Request &request);
+		const Server*	getListeningServerByFD(int fd) const;
+		void	cleanupClient(int fd, fd_set &master_fds);
 };
 
 #endif

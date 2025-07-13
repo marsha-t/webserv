@@ -1,3 +1,4 @@
+#include "../../includes/ServerConfig.hpp"
 #include "../../includes/Response.hpp"
 
 Response::Response(void): _httpVersion("HTTP/1.1") {}
@@ -35,11 +36,36 @@ void Response::setBody(const std::string &body)
 	_body = body;
 }
 
-void Response::setError(int code, const std::string &message)
+void Response::setError(int code, const std::string &message, const ServerConfig &config)
 {
 	setStatusLine(code, message);
-	setHeader("Content-Type", "text/plain");
-	setBody(::toString(code) + " " + message);
+	setHeader("Content-Type", "text/html");
+
+	std::map<int, std::string>::const_iterator it = config.getErrorPages().find(code);
+	if (it != config.getErrorPages().end())
+	{
+		std::string errorPagePath = it->second;
+		std::ifstream file(errorPagePath.c_str());
+		if (file.is_open())
+		{
+			std::stringstream buffer;
+			buffer << file.rdbuf();
+			setBody(buffer.str());
+			file.close();
+		}
+		else
+		{
+			setBody("<html><head><title>" + ::toString(code) + " " + message + "</title></head>" \
+					"<body><center><h1>" + ::toString(code) + " " + message + "</h1></center>" \
+					"<hr><center>webserv</center></body></html>");
+		}
+	}
+	else
+	{
+		setBody("<html><head><title>" + ::toString(code) + " " + message + "</title></head>" \
+				"<body><center><h1>" + ::toString(code) + " " + message + "</h1></center>" \
+				"<hr><center>webserv</center></body></html>");
+	}
 }
 
 void Response::setFile(const std::string &body, const std::string &mimeType)

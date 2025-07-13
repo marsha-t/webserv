@@ -220,7 +220,7 @@ void ConfigParser::parseLocationBlock(std::istream &in, Route &route)
 		else if (tokens[0] == "methods" && tokens.size() >= 2)
 		{
 			for (size_t i = 1; i < tokens.size(); ++i)
-				route.addMethod(tokens[i]);
+				route.addAllowedMethod(tokens[i]);
 		}
 		else if (tokens[0] == "return" && tokens.size() == 3)
 		{
@@ -237,9 +237,13 @@ void ConfigParser::parseLocationBlock(std::istream &in, Route &route)
 			route.setUploadDir(tokens[1]);
 			uploadDirSet = true;
 		}
-		else if (tokens[0] == "cgi" && tokens.size() == 2 && tokens[1] == "{")
+		else if (tokens[0] == "client_max_body_size" && tokens.size() == 2)
 		{
-			parseCGIBlock(in, route);
+			route.setClientMaxBodySize(std::atoi(tokens[1].c_str()));
+		}
+		else if (tokens[0] == "cgi" && tokens.size() == 3)
+		{
+			route.addCGI(tokens[1], tokens[2]);
 		}
 		else
 			throw std::runtime_error("Unknown or malformed directive in location block: " + line);
@@ -250,21 +254,4 @@ void ConfigParser::parseLocationBlock(std::istream &in, Route &route)
 }
 
 
-void ConfigParser::parseCGIBlock(std::istream &in, Route &route)
-{
-	std::string line;
-	if (!std::getline(in, line))
-		throw std::runtime_error("Expected '{' after 'cgi' directive");
-	while (std::getline(in, line))
-	{
-		line = cleanLine(line);
-		if (line.empty())
-			continue;
-		if (line == "}")
-			break ;
-		std::vector<std::string> tokens = tokenize(line);
-		if (tokens.size() != 2)
-			throw std::runtime_error("Invalid CGI directive");
-		route.addCGI(tokens[0], tokens[1]);
-	}
-}
+
