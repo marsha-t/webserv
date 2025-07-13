@@ -3,6 +3,7 @@
 
 #include "common.hpp"
 #include "utils.hpp"
+#include "ServerConfig.hpp"
 class Response
 {
 	private:
@@ -25,7 +26,7 @@ class Response
 		void setStatusLine(int code, const std::string &message);
 		void setHeader(const std::string &key, const std::string &value);
 		void setBody(const std::string &body);
-		void setError(int code, const std::string &message);
+		void setError(int code, const std::string &message, const ServerConfig &config);
 		void setFile(const std::string &body, const std::string &mimeType);
 	
 		// Other functions

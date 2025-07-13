@@ -11,13 +11,16 @@ SRC         := $(SRC_DIR)/main.cpp \
 				$(SRC_DIR)/http/Request.cpp $(SRC_DIR)/http/Response.cpp \
 				$(SRC_DIR)/config/ServerConfig.cpp $(SRC_DIR)/config/Route.cpp \
 				$(SRC_DIR)/config/ConfigParser.cpp \
-				$(SRC_DIR)/handler/RequestDispatcher.cpp $(SRC_DIR)/handler/StaticFileHandler.cpp  \
+				$(SRC_DIR)/handler/RequestDispatcher.cpp $(SRC_DIR)/handler/StaticFileHandler.cpp \
+				$(SRC_DIR)/handler/CgiHandler.cpp \
+				$(SRC_DIR)/handler/UploadHandler.cpp \
+				$(SRC_DIR)/handler/RedirectHandler.cpp \
 				$(SRC_DIR)/server/Server.cpp $(SRC_DIR)/server/ServerManager.cpp \
 				$(SRC_DIR)/utils/utils.cpp 
 				
 
 
-OBJ         := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+OBJ = $(OBJ_DIR)/main.o $(OBJ_DIR)/config/ConfigParser.o $(OBJ_DIR)/config/Route.o $(OBJ_DIR)/config/ServerConfig.o $(OBJ_DIR)/handler/RequestDispatcher.o $(OBJ_DIR)/http/Request.o $(OBJ_DIR)/http/Response.o $(OBJ_DIR)/server/Server.o $(OBJ_DIR)/server/ServerManager.o $(OBJ_DIR)/handler/CgiHandler.o $(OBJ_DIR)/handler/RedirectHandler.o $(OBJ_DIR)/handler/StaticFileHandler.o $(OBJ_DIR)/handler/UploadHandler.o $(OBJ_DIR)/utils/utils.o
 
 all: $(NAME)
 

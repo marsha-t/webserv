@@ -34,7 +34,13 @@ void	Route::setRoot(const std::string &root)
 		_root = _root.substr(0, _root.size() - 1);
 
 }
-void	Route::addMethod(const std::string &method) { _methods.push_back(method); }
+void	Route::addAllowedMethod(const std::string &method) 
+{ 
+	if (method == "GET" || method == "POST" || method == "DELETE")
+		_methods.push_back(method);
+	else
+		throw std::runtime_error("Invalid method in configuration");
+}
 void	Route::addIndexFile(const std::string &index) { _indexFiles.push_back(index); }
 void	Route::setAutoindex(bool autoindex) { _autoindex = autoindex; }
 void	Route::setUploadDir(const std::string &dir) { _uploadDir = dir; }

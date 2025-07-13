@@ -63,67 +63,67 @@ void	ServerManager::setup(void)
 	}
 }
 
-// Sets up initial pollfd array for each serverFD
-// Calls pollLoop 
+// Sets up initial fd_set for each serverFD
+// Calls selectLoop 
 void	ServerManager::start(void)
 {
-	std::vector<pollfd> fds;
+	fd_set master_fds;
+	FD_ZERO(&master_fds);
+	int max_fd = 0;
+
 	for (size_t i = 0; i < _servers.size(); ++i)
 	{
-		pollfd serverPollFD;
-		serverPollFD.fd = _servers[i].getServerFD();
-		serverPollFD.events = POLLIN;
-		serverPollFD.revents = 0;
-		fds.push_back(serverPollFD);
-	}	
-	pollLoop(fds);
+		int fd = _servers[i].getServerFD();
+		FD_SET(fd, &master_fds);
+		if (fd > max_fd)
+			max_fd = fd;
+	}
+	selectLoop();
 }
 
 // Iterates over all FDs: 
 // - if it's a listening socket, accept a new client
 // - if it's a client socket, read and process request
-void ServerManager::pollLoop(std::vector<struct pollfd> &fds)
+void ServerManager::selectLoop(void)
 {
+	fd_set master_fds, read_fds;
+	int max_fd = 0;
+
+	FD_ZERO(&master_fds);
+	for (size_t i = 0; i < _servers.size(); ++i)
+	{
+		int fd = _servers[i].getServerFD();
+		FD_SET(fd, &master_fds);
+		if (fd > max_fd)
+			max_fd = fd;
+	}
+
 	while (true)
 	{
-		int ready = poll(&fds[0], fds.size(), -1);
+		read_fds = master_fds;
+		int ready = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
 		if (ready < 0)
-			throw std::runtime_error("Poll failed");
+			throw std::runtime_error("Select failed");
 		
-		for (size_t i = 0; i < fds.size(); ++i)
+		for (int i = 0; i <= max_fd; ++i)
 		{
-			int fd = fds[i].fd;
-			if (fds[i].revents & (POLLERR | POLLHUP | POLLNVAL)) // errors
+			if (FD_ISSET(i, &read_fds))
 			{
-				cleanupClient(fd, fds, i);
-				continue;
-			}
-			else if (fds[i].revents & POLLIN) // to check after errors; in case both coexist
-			{
-				try
+				if (isListeningSocket(i))
+					acceptNewClient(i, master_fds, max_fd);
+				else
 				{
-					if (isListeningSocket(fd))
-						acceptNewClient(fd, fds);
-					else
+					if (!handleClientRead(i))
 					{
-						if (!handleClientRead(fd))
-						{
-							cleanupClient(fd, fds, i);
-							continue;
-						}
-						std::map<int, Request>::iterator it = _clientRequests.find(fd);
-						if (it != _clientRequests.end())
-						{
-							processClientRequest(fd, it->second);
-							cleanupClient(fd, fds, i);
-							
-						}
+						cleanupClient(i, master_fds);
+						continue;
 					}
-				}
-				catch (const std::exception &e)
-				{
-					std::cerr << "Error handling fd " << fd << ": " << e.what() << std::endl;
-					cleanupClient(fd, fds, i);
+					std::map<int, Request>::iterator it = _clientRequests.find(i);
+					if (it != _clientRequests.end())
+					{
+						processClientRequest(i, it->second);
+						cleanupClient(i, master_fds);
+					}
 				}
 			}
 		}
@@ -142,7 +142,7 @@ bool ServerManager::isListeningSocket(int fd) const
 
 // Accepts client connection and adds clientFD to fds for monitoring
 // Stores mapping of client to server in _clientToServer
-void ServerManager::acceptNewClient(int serverFD, std::vector<pollfd>& fds)
+void ServerManager::acceptNewClient(int serverFD, fd_set &master_fds, int &max_fd)
 {
 	int clientFD = accept(serverFD, NULL, NULL);
 	if (clientFD < 0)
@@ -152,11 +152,9 @@ void ServerManager::acceptNewClient(int serverFD, std::vector<pollfd>& fds)
 		close(clientFD);
 		throw std::runtime_error("fcntl failed"); // TODO consider changing to perror
 	}
-	struct pollfd clientPollFD;
-	clientPollFD.fd = clientFD;
-	clientPollFD.events = POLLIN;
-	clientPollFD.revents = 0;
-	fds.push_back(clientPollFD);
+	FD_SET(clientFD, &master_fds);
+	if (clientFD > max_fd)
+		max_fd = clientFD;
 
 	const Server *server = getListeningServerByFD(serverFD);
 	if (server)
@@ -191,14 +189,36 @@ bool ServerManager::handleClientRead(int clientFD)
 	}
 
 	// If headers are received, parse into Request
-	if (_clientBuffers[clientFD].find("\r\n\r\n") != std::string::npos)
+	std::string::size_type headerEnd = _clientBuffers[clientFD].find("\r\n\r\n");
+	if (headerEnd == std::string::npos)
+		return true; // Headers not complete yet
+
+	// Check if body is complete based on Content-Length or Transfer-Encoding
+	std::string headers = _clientBuffers[clientFD].substr(0, headerEnd);
+	Request tempReq; // Use a temporary request to parse headers only
+	tempReq.parse(headers + "\r\n\r\n"); // Add CRLF to make it a valid request for parsing
+
+	std::string contentLengthStr = tempReq.getHeader("content-length");
+	std::string transferEncoding = tempReq.getHeader("transfer-encoding");
+
+	if (!transferEncoding.empty() && transferEncoding == "chunked")
 	{
-		Request req;
-		if (!req.parse(_clientBuffers[clientFD]))
-			return false; // invalid request → close connection
-		_clientRequests[clientFD] = req;
+		// For chunked, we need to read until the 0-length chunk is found
+		if (_clientBuffers[clientFD].find("0\r\n\r\n", headerEnd) == std::string::npos)
+			return true; // Not all chunks received yet
 	}
-	// If headers not received, return true to continue reading
+	else if (!contentLengthStr.empty())
+	{
+		long contentLength = std::strtol(contentLengthStr.c_str(), NULL, 10);
+		if (_clientBuffers[clientFD].length() - (headerEnd + 4) < static_cast<size_t>(contentLength))
+			return true; // Not all body received yet
+	}
+
+	// Full request received, parse and store
+	Request req;
+	if (!req.parse(_clientBuffers[clientFD]))
+		return false; // invalid request → close connection
+	_clientRequests[clientFD] = req;
 	return true;
 }
 
@@ -223,7 +243,7 @@ void ServerManager::processClientRequest(int clientFD, Request& request) {
 	Route matchedRoute;
 	if (!selectedConfig.matchRoute(request.getTarget(), matchedRoute)) {
 		Response res;
-		res.setError(404, "Not Found");
+		res.setError(404, "Not Found", selectedConfig);
 		std::string responseStr = res.toString();
 		write(clientFD, responseStr.c_str(), responseStr.size());
 		return;
@@ -240,7 +260,7 @@ void ServerManager::processClientRequest(int clientFD, Request& request) {
 
 	if (!request.validateBody(maxBodySize)) {
 		Response res;
-		res.setError(413, "Payload Too Large");
+		res.setError(413, "Payload Too Large", selectedConfig);
 		std::string responseStr = res.toString();
 		write(clientFD, responseStr.c_str(), responseStr.size());
 		return;
@@ -249,10 +269,10 @@ void ServerManager::processClientRequest(int clientFD, Request& request) {
 	// Select handler and generate response
 	Response response;
 	RequestDispatcher dispatcher;
-	IRequestHandler* handler = dispatcher.selectHandler(request, matchedRoute);
+	IRequestHandler* handler = dispatcher.selectHandler(request, matchedRoute, selectedConfig);
 
 	if (!handler) {
-		response.setError(501, "Not Implemented");
+		response.setError(501, "Not Implemented", selectedConfig);
 		std::string responseStr = response.toString();
 		write(clientFD, responseStr.c_str(), responseStr.size());
 		return;
@@ -283,12 +303,11 @@ const Server* ServerManager::getListeningServerByFD(int fd) const
 }
 
 // Closes and removes client FD from ServerManager
-void ServerManager::cleanupClient(int fd, std::vector<struct pollfd> &fds, size_t &i)
+void ServerManager::cleanupClient(int fd, fd_set &master_fds)
 {
 	close(fd);
-	fds.erase(fds.begin() + i);
+	FD_CLR(fd, &master_fds);
 	_clientToServer.erase(fd);
 	_clientBuffers.erase(fd);
 	_clientRequests.erase(fd);
-	--i;
 }

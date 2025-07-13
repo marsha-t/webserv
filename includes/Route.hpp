@@ -20,6 +20,7 @@ class Route
 		void	setLocation(const std::string &location);
 		void	setRoot(const std::string &root);
 		void	addMethod(const std::string &method);
+		void	addAllowedMethod(const std::string &method);
 		void	addIndexFile(const std::string &index);
 		void	setAutoindex(bool autoindex);
 		void	setUploadDir(const std::string &dir);
