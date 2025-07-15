@@ -55,7 +55,6 @@ bool	Request::parse(const std::string &raw)
 		return false;
 	if (!parseHeaders(stream))
 		return false;
-	parseBody();
 	return true;
 }
 
@@ -132,7 +131,8 @@ bool Request::validateBody(std::size_t maxBodySize)
 
 	if (transferEncoding == "chunked")
 	{
-		return decodeChunkedBody();
+		if (!decodeChunkedBody())
+			return false;
 	}
 
 	std::size_t bodySize = _body.size();
@@ -148,7 +148,6 @@ bool Request::validateBody(std::size_t maxBodySize)
 				return false;
 			}
 		}
-		return true;
 	}
 
 	if (!contentLength.empty())
@@ -173,6 +172,7 @@ bool Request::validateBody(std::size_t maxBodySize)
 		_parseErrorCode = 413;
 		return false;
 	}
+	parseBody();
 	return true;
 }
 
