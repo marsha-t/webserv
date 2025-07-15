@@ -41,4 +41,16 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re test
+
+# Test rule
+TEST_SRCS = tests/test_request.cpp
+TEST_OBJS = $(TEST_SRCS:.cpp=.o)
+TEST_NAME = test_runner
+
+test: $(TEST_NAME)
+
+$(TEST_NAME): $(TEST_OBJS) $(filter-out $(OBJ_DIR)/main.o,$(OBJ))
+	@$(CXX) $(CXXFLAGS) -o $(TEST_NAME) $(TEST_OBJS) $(filter-out $(OBJ_DIR)/main.o,$(OBJ))
+	@./$(TEST_NAME)
+

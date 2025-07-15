@@ -54,6 +54,8 @@ class Request
         bool decodeChunkedBody(void);
         void parseBody(void);
         void parseMultipartFormData(const std::string &boundary);
+        std::string trimR(const std::string &line);
+        std::string toLower(const std::string &str);
 
 
 };
