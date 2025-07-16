@@ -19,7 +19,12 @@ class UploadHandler : public IRequestHandler
 		const Route &_route;
 		const ServerConfig &_config;
 
+		std::string sanitizeFilename(const std::string& filename);
 		bool saveFile(const std::string &filename, const std::string &content) const;
+		bool isSafePath(const std::string &path, const std::string &baseDir) const;
+
+		UploadHandler();
+		UploadHandler &operator=(const UploadHandler &obj);
 };
 
 #endif

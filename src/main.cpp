@@ -8,11 +8,6 @@
 #include "../includes/Server.hpp"
 #include "../includes/ServerManager.hpp"
 
-void    errorMsg(std::string msg)
-{
-	std::cerr << RED << msg << RESET << std::endl;
-}
-
 int	main(int argc, char **argv)
 {
 	try

@@ -1,6 +1,7 @@
 #ifndef REDIRECTHANDLER_HPP
 #define REDIRECTHANDLER_HPP
 
+#include "common.hpp"
 #include "IRequestHandler.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
@@ -18,6 +19,9 @@ class RedirectHandler : public IRequestHandler
 	private:
 		const Route &_route;
 		const ServerConfig &_config;
+
+		RedirectHandler();
+		RedirectHandler &operator=(const RedirectHandler &obj);
 };
 
 #endif

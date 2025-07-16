@@ -78,32 +78,27 @@ void	ServerManager::start(void)
 		if (fd > max_fd)
 			max_fd = fd;
 	}
-	selectLoop();
+	debugMsg("Starting server. Initial max_fd = ", max_fd);
+	selectLoop(master_fds, max_fd);
 }
 
 // Iterates over all FDs: 
 // - if it's a listening socket, accept a new client
 // - if it's a client socket, read and process request
-void ServerManager::selectLoop(void)
+void ServerManager::selectLoop(fd_set master_fds, int max_fd)
 {
-	fd_set master_fds, read_fds;
-	int max_fd = 0;
-
-	FD_ZERO(&master_fds);
-	for (size_t i = 0; i < _servers.size(); ++i)
-	{
-		int fd = _servers[i].getServerFD();
-		FD_SET(fd, &master_fds);
-		if (fd > max_fd)
-			max_fd = fd;
-	}
+	fd_set read_fds;
 
 	while (true)
 	{
 		read_fds = master_fds;
+		debugMsg("Waiting for activity on fds (max_fd = ", max_fd);
 		int ready = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+		std::ostringstream oss;
+		oss << "select() returned " << ready << " ready fds";
+		debugMsg(oss.str());
 		if (ready < 0)
-			throw std::runtime_error("Select failed");
+			fatalError("Select failed");
 		
 		for (int i = 0; i <= max_fd; ++i)
 		{
@@ -115,14 +110,16 @@ void ServerManager::selectLoop(void)
 				{
 					if (!handleClientRead(i))
 					{
-						cleanupClient(i, master_fds);
+						cleanupClient(i, master_fds, max_fd);
+						debugMsg("Cleaned up FD = ", i);
 						continue;
 					}
 					std::map<int, Request>::iterator it = _clientRequests.find(i);
 					if (it != _clientRequests.end())
 					{
-						processClientRequest(i, it->second);
-						cleanupClient(i, master_fds);
+						processClientRequest(i, it->second, master_fds, max_fd);
+						cleanupClient(i, master_fds, max_fd);
+						debugMsg("Cleaned up FD = ", i);
 					}
 				}
 			}
@@ -146,11 +143,11 @@ void ServerManager::acceptNewClient(int serverFD, fd_set &master_fds, int &max_f
 {
 	int clientFD = accept(serverFD, NULL, NULL);
 	if (clientFD < 0)
-		throw std::runtime_error("Accept failed"); // TODO consider changing to perror
+		fatalError("Accept failed");
 	if (fcntl(clientFD, F_SETFL, O_NONBLOCK) < 0)
 	{
 		close(clientFD);
-		throw std::runtime_error("fcntl failed"); // TODO consider changing to perror
+		fatalError("fctnl failed");
 	}
 	FD_SET(clientFD, &master_fds);
 	if (clientFD > max_fd)
@@ -159,6 +156,7 @@ void ServerManager::acceptNewClient(int serverFD, fd_set &master_fds, int &max_f
 	const Server *server = getListeningServerByFD(serverFD);
 	if (server)
 		_clientToServer[clientFD] = server;
+	debugMsg("Accepted new client: FD = ", clientFD);
 }
 
 // Reads incoming data from client socket 
@@ -178,12 +176,11 @@ bool ServerManager::handleClientRead(int clientFD)
 		{
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				break; // No more data for now — return to poll()
-			perror("read error"); // TODO throw std::runtime_error?
+			errorMsg("read failed");
 			return false;
 		}
-		else if (bytesRead == 0) // client disconnected
+		else if (bytesRead == 0)
 			return false;
-
 		buffer[bytesRead] = '\0';
 		_clientBuffers[clientFD] += buffer;
 	}
@@ -209,7 +206,10 @@ bool ServerManager::handleClientRead(int clientFD)
 	}
 	else if (!contentLengthStr.empty())
 	{
-		long contentLength = std::strtol(contentLengthStr.c_str(), NULL, 10);
+		char *endptr;
+		long contentLength = std::strtol(contentLengthStr.c_str(), &endptr, 10);
+		if (*endptr != '\0' || contentLength < 0)
+    		return false;
 		if (_clientBuffers[clientFD].length() - (headerEnd + 4) < static_cast<size_t>(contentLength))
 			return true; // Not all body received yet
 	}
@@ -219,6 +219,7 @@ bool ServerManager::handleClientRead(int clientFD)
 	if (!req.parse(_clientBuffers[clientFD]))
 		return false; // invalid request → close connection
 	_clientRequests[clientFD] = req;
+	debugMsg("Full request parsed for FD = ", clientFD);
 	return true;
 }
 
@@ -226,15 +227,15 @@ bool ServerManager::handleClientRead(int clientFD)
 // Obtain max body size if specified 
 // Validate request body (using max body size + other checks)
 // Dispatches request to appropriate handler
-void ServerManager::processClientRequest(int clientFD, Request& request) {
+void ServerManager::processClientRequest(int clientFD, Request& request, fd_set &master_fds, int &max_fd) {
 	std::map<int, const Server*>::iterator it = _clientToServer.find(clientFD);
 	if (it == _clientToServer.end()) {
-		std::cerr << "No server for fd " << clientFD << std::endl;
+		errorMsg("No server associated with client", clientFD);
 		return;
 	}
 	const Server* server = it->second;
 	if (!server) {
-		std::cerr << "No server for fd " << clientFD << std::endl;
+		errorMsg("No server associated with client", clientFD);
 		return;
 	}
 
@@ -243,7 +244,7 @@ void ServerManager::processClientRequest(int clientFD, Request& request) {
 	Route matchedRoute;
 	if (!selectedConfig.matchRoute(request.getTarget(), matchedRoute)) {
 		Response res;
-		res.setError(404, "Not Found", selectedConfig);
+		res.setError(404, selectedConfig);
 		std::string responseStr = res.toString();
 		write(clientFD, responseStr.c_str(), responseStr.size());
 		return;
@@ -260,7 +261,7 @@ void ServerManager::processClientRequest(int clientFD, Request& request) {
 
 	if (!request.validateBody(maxBodySize)) {
 		Response res;
-		res.setError(413, "Payload Too Large", selectedConfig);
+		res.setError(request.getParseErrorCode(), selectedConfig);
 		std::string responseStr = res.toString();
 		write(clientFD, responseStr.c_str(), responseStr.size());
 		return;
@@ -272,7 +273,8 @@ void ServerManager::processClientRequest(int clientFD, Request& request) {
 	IRequestHandler* handler = dispatcher.selectHandler(request, matchedRoute, selectedConfig);
 
 	if (!handler) {
-		response.setError(501, "Not Implemented", selectedConfig);
+		errorMsg("No handler implemented", clientFD);
+		response.setError(501, selectedConfig);
 		std::string responseStr = response.toString();
 		write(clientFD, responseStr.c_str(), responseStr.size());
 		return;
@@ -284,7 +286,11 @@ void ServerManager::processClientRequest(int clientFD, Request& request) {
 	std::string responseStr = response.toString();
 	ssize_t bytesSent = write(clientFD, responseStr.c_str(), responseStr.size());
 	if (bytesSent < 0)
-		perror("write failed");
+	{
+		errorMsg("Write to client failed", clientFD);
+        cleanupClient(clientFD, master_fds, max_fd);
+		return ;
+	}
 
 	_clientBuffers.erase(clientFD);
 	_clientRequests.erase(clientFD);
@@ -303,11 +309,26 @@ const Server* ServerManager::getListeningServerByFD(int fd) const
 }
 
 // Closes and removes client FD from ServerManager
-void ServerManager::cleanupClient(int fd, fd_set &master_fds)
+void ServerManager::cleanupClient(int fd, fd_set &master_fds, int &max_fd)
 {
 	close(fd);
 	FD_CLR(fd, &master_fds);
+	if (fd == max_fd)
+	{
+		max_fd = 0;
+		for (int i = FD_SETSIZE - 1; i >= 0; --i)
+		{
+			if (FD_ISSET(i, &master_fds))
+			{
+				max_fd = i;
+				break;
+			}
+		}
+	}
+
 	_clientToServer.erase(fd);
 	_clientBuffers.erase(fd);
 	_clientRequests.erase(fd);
+	debugMsg("Closed client: FD = ", fd);
+
 }
