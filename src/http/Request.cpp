@@ -153,6 +153,12 @@ bool Request::parseHeaders(std::istream &stream)
 
 bool Request::validateBody(std::size_t maxBodySize)
 {
+	if (!isSupportedMethod(_method))
+	{
+		_parseErrorCode = 501;
+		return false;
+	}
+
 	if (!handleChunkedEncoding())
 		return false;
 
@@ -170,6 +176,17 @@ bool Request::validateBody(std::size_t maxBodySize)
 
 	parseBody();
 	return true;
+}
+
+bool Request::isSupportedMethod(const std::string &method)
+{
+	const std::string supportedMethods[] = { "GET", "POST", "DELETE" };
+	for (size_t i = 0; i < 3; ++i)
+	{
+		if (method == supportedMethods[i])
+			return true;
+	}
+	return false;
 }
 
 bool Request::handleChunkedEncoding(void)

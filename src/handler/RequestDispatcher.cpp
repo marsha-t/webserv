@@ -12,6 +12,12 @@ RequestDispatcher::~RequestDispatcher() {}
 
 IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Route &route, const ServerConfig &config) const
 {
+	if (!route.isMethodAllowed(req.getMethod())) 
+	{
+		debugMsg("405 Method Not Allowed for " + req.getMethod());
+		return NULL;
+	}
+
 	if (route.isRedirect())
 	{
 		debugMsg("Selecting RedirectHandler");

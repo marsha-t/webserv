@@ -217,8 +217,6 @@ bool ServerManager::readFromClient(int fd, std::string& buffer)
 	ssize_t bytesRead = read(fd, tempBuf, sizeof(tempBuf) - 1);
 	if (bytesRead < 0)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return true;
 		errorMsg("Read failed on FD = ", fd);
 		return false;
 	}
@@ -362,7 +360,7 @@ void ServerManager::generateResponseAndBuffer(int clientFD, const Request& reque
 	if (!handler)
 	{
 		errorMsg("No handler implemented", clientFD);
-		response.setError(501, config);
+		response.setError(405, config);
 		bufferResponse(clientFD, response.toString());
 		return;
 	}
@@ -402,7 +400,12 @@ void ServerManager::handleClientWrite(int fd)
 		cleanupClient(fd);
 		return;
 	}
-
+	else if (bytesSent == 0)
+	{
+		debugMsg("Write returned 0: connection closed or interrupted");
+		cleanupClient(fd);
+		return;
+	}
 	offset += bytesSent;
 
 	// If not done writing yet, wait for next select()
