@@ -1,6 +1,7 @@
 #ifndef CGIHANDLER_HPP
 #define CGIHANDLER_HPP
 
+#include "common.hpp"
 #include "IRequestHandler.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
@@ -21,6 +22,14 @@ class CgiHandler : public IRequestHandler
 
 		std::map<std::string, std::string> getCgiEnv(const Request &req) const;
 		std::string executeCgi(const Request &req, Response &res, const std::string &scriptPath) const;
+		char **createEnvArray(const std::map<std::string, std::string>& envMap) const;
+		void handleChildProcess(const Request &req, const std::string &scriptPath, char **env, int pipe_in[2], int pipe_out[2]) const;
+		void writeRequestBody(const Request &req, int writeFd) const;
+		std::string readCgiOutput(int readFd) const;
+		void parseCgiResponse(const std::string &cgiOutput, Response &res) const;
+
+		CgiHandler();
+		CgiHandler &operator=(const CgiHandler &obj);
 };
 
 #endif

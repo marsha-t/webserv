@@ -4,6 +4,13 @@
 #include "common.hpp"
 
 #define MAX_CHUNK_SIZE 100000000
+#define MAX_URI_LENGTH 2048
+
+struct UploadedFile {
+    std::string filename;
+    std::string content;
+};
+
 
 class Request
 {
@@ -27,7 +34,7 @@ class Request
         const std::string &getBody() const;
         int getParseErrorCode(void) const;
         std::string getQueryString(void) const;
-        const std::map<std::string, std::string>& getUploadedFiles() const;
+    	const std::map<std::string, std::vector<UploadedFile> >& getUploadedFiles() const;
 
         // Other functions
         bool    parse(const std::string &raw); 
@@ -43,21 +50,25 @@ class Request
         std::string _body;
         int _parseErrorCode;
         std::map<std::string, std::string> _formData;
-        std::map<std::string, std::string> _uploadedFiles;
+        std::map<std::string, std::vector<UploadedFile> > _uploadedFiles;
 
-        #include "utils.hpp"
         bool checkMethod(const std::string &method);
         bool checkTarget(const std::string &target);
         bool checkVersion(const std::string &version);
         bool parseRequestLine(std::istream &stream);
         bool parseHeaders(std::istream &stream);
+        bool handleChunkedEncoding(void);
+        bool checkRequiredLengthHeader(void);
+        bool checkContentLength(void);
+        bool checkUploadedFileSizes(std::size_t maxBodySize);
+        bool checkTotalBodySize(std::size_t maxBodySize);
         bool decodeChunkedBody(void);
         void parseBody(void);
-        void parseMultipartFormData(const std::string &boundary);
-        std::string trimR(const std::string &line);
-        std::string toLower(const std::string &str);
-
-
+        bool parseMultipartFormData(const std::string &boundary);
+        bool extractContentDisposition(const std::string &headers, std::string &contentDisposition) const;
+        bool extractFieldNames(const std::string &contentDisposition, std::string &name, std::string &filename) const;
+        bool extractPartContent(std::string::size_type &prevPos, std::string::size_type &nextBoundaryPos,
+        const std::string &boundary, std::string &partContent) const;
 };
 
 #endif

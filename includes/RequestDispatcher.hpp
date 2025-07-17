@@ -15,16 +15,20 @@ class RequestDispatcher
 	public:
 		// Constructor
 		RequestDispatcher(void);
-		RequestDispatcher(const RequestDispatcher &obj);
-
-		// Operator
-		RequestDispatcher &operator=(const RequestDispatcher &obj);
 		
 		// Destructor
 		~RequestDispatcher();
 		
 		// Others
 		IRequestHandler *selectHandler(const Request &req, const Route &route, const ServerConfig &config) const;
+	
+	private:
+		std::string getFileExtension(const std::string &path) const;
+		bool isCgiRequest(const Request &req, const Route &route) const;
+		
+		RequestDispatcher(const RequestDispatcher &obj);
+		RequestDispatcher &operator=(const RequestDispatcher &obj);
+
 };
 	
 #endif

@@ -22,8 +22,6 @@ class ServerManager
 		// Operators
 		ServerManager &operator=(const ServerManager &obj);
 		
-		// Getters
-		
 		// Others
 		void	setup(void);
 		void	start(void);
@@ -33,22 +31,14 @@ class ServerManager
 		std::map<int, const Server*> _clientToServer; // map each client connection FD after accept to Server that accepted it; needed to select right ServerConfig later
 		std::map<int, std::string> _clientBuffers; // raw data received from each client
 		std::map<int, Request> _clientRequests; // parsed request for each clientFD
-		
-		// TODO to support partial writes (writing in chunks and resume later), and
-		// 		persistent connections (Connection: keep-alive)
-		// std::map<int, Response> _clientResponses
-		
-		// TODO to track which connections should close after response is fully sent
-		// std::set<int> _closingClients;
 			
 		bool isListeningSocket(int fd) const;
-		void	selectLoop(void);
+		void	selectLoop(fd_set master_fds, int max_fd);
 		void	acceptNewClient(int serverFD, fd_set &master_fds, int &max_fd);
 		bool	handleClientRead(int clientFD);
-
-		void	processClientRequest(int clientFD, Request &request);
+		void	processClientRequest(int clientFD, Request& request, fd_set &master_fds, int &max_fd);
 		const Server*	getListeningServerByFD(int fd) const;
-		void	cleanupClient(int fd, fd_set &master_fds);
+		void	cleanupClient(int fd, fd_set &master_fds, int &max_fd);
 };
 
 #endif

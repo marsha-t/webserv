@@ -1,6 +1,28 @@
 #include "../../includes/ServerConfig.hpp"
 #include "../../includes/Response.hpp"
 
+static std::string normalizeHeaderKey(const std::string &key)
+{
+	std::string result;
+	bool capitalizeNext = true;
+	for (std::string::const_iterator it = key.begin(); it != key.end(); ++it)
+	{
+		if (*it == '-')
+		{
+			result += *it;
+			capitalizeNext = true;
+		}
+		else if (capitalizeNext)
+		{
+			result += std::toupper(*it);
+			capitalizeNext = false;
+		}
+		else
+			result += std::tolower(*it);
+	}
+	return result;
+}
+
 Response::Response(void): _httpVersion("HTTP/1.1") {}
 
 Response::Response(const Response &obj): _httpVersion(obj._httpVersion), _statusLine(obj._statusLine), _headers(obj._headers), _body(obj._body) {}
@@ -28,16 +50,23 @@ void    Response::setStatusLine(int code, const std::string &message)
 
 void    Response::setHeader(const std::string &key, const std::string &value)
 {
-	_headers[key] = value;
+	_headers[normalizeHeaderKey(key)] = value;
 }
 
 void Response::setBody(const std::string &body)
 {
 	_body = body;
+	std::istringstream iss(_statusLine);
+	std::string version;
+	int code;
+	iss >> version >> code;
+	if (code != 204 && code != 304 && (code < 100 || code >= 200)) // not 1xx, 204, 304
+		setHeader("Content-Length", ::toString(_body.size()));
 }
 
-void Response::setError(int code, const std::string &message, const ServerConfig &config)
+void Response::setError(int code, const ServerConfig &config)
 {
+	std::string message = httpStatusMessage(code);
 	setStatusLine(code, message);
 	setHeader("Content-Type", "text/html");
 
@@ -50,46 +79,64 @@ void Response::setError(int code, const std::string &message, const ServerConfig
 		{
 			std::stringstream buffer;
 			buffer << file.rdbuf();
-			setBody(buffer.str());
+			std::string content = buffer.str();
 			file.close();
+			if (!content.empty())
+				setBody(content);
+			else
+				setDefaultErrorBody(code, message);
 		}
 		else
-		{
-			setBody("<html><head><title>" + ::toString(code) + " " + message + "</title></head>" \
-					"<body><center><h1>" + ::toString(code) + " " + message + "</h1></center>" \
-					"<hr><center>webserv</center></body></html>");
-		}
+			setDefaultErrorBody(code, message);
 	}
 	else
-	{
-		setBody("<html><head><title>" + ::toString(code) + " " + message + "</title></head>" \
-				"<body><center><h1>" + ::toString(code) + " " + message + "</h1></center>" \
-				"<hr><center>webserv</center></body></html>");
-	}
+		setDefaultErrorBody(code, message);
+}
+
+void Response::setDefaultErrorBody(int code, const std::string &message)
+{
+	setBody("<html><head><title>" + ::toString(code) + " " + message + "</title></head>"
+			"<body><center><h1>" + ::toString(code) + " " + message + "</h1></center>"
+			"<hr><center>webserv</center></body></html>");
 }
 
 void Response::setFile(const std::string &body, const std::string &mimeType)
 {
-	setStatusLine(200, "OK");
+	setStatusLine(200, httpStatusMessage(200));
 	setHeader("Content-Type", mimeType);
-	setHeader("Content-Length", ::toString(body.size()));
 	setBody(body);
 }
 
+// Code 204 and 304 don't include message body and no content-length header
 std::string Response::toString(void) const
 {
 	std::ostringstream oss;
 	oss << _statusLine << "\r\n";
-	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+
+	// Extract status code (e.g., "HTTP/1.1 204 No Content")
+	std::istringstream iss(_statusLine);
+	std::string httpVersion;
+	int code = 0;
+	iss >> httpVersion >> code;
+
+	// Suppress Content-Length and body for 204 and 304
+	if (code == 204 || code == 304)
 	{
-		oss << it->first << ": " << it->second << "\r\n";
+		// Remove Content-Length and any related headers
+		for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+		{
+			if (it->first != "Content-Length")
+				oss << it->first << ": " << it->second << "\r\n";
+		}
+		oss << "\r\n"; // End of headers
 	}
-
-	// Empty line after headers
-	oss << "\r\n";
-
-	// Body
-	oss << _body;
-
+	else
+	{
+		for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+		{
+			oss << it->first << ": " << it->second << "\r\n";
+		}
+		oss << "\r\n" << _body;
+	}
 	return oss.str();
 }

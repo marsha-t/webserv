@@ -2,7 +2,7 @@
 #define RESPONSE_HPP
 
 #include "common.hpp"
-#include "utils.hpp"
+// #include "utils.hpp"
 #include "ServerConfig.hpp"
 class Response
 {
@@ -11,6 +11,9 @@ class Response
 		std::string _statusLine;
 		std::map<std::string, std::string> _headers;
 		std::string _body;
+		
+		void setDefaultErrorBody(int code, const std::string &message);
+
 	public:
 		// Constructor
 		Response(void);
@@ -26,7 +29,7 @@ class Response
 		void setStatusLine(int code, const std::string &message);
 		void setHeader(const std::string &key, const std::string &value);
 		void setBody(const std::string &body);
-		void setError(int code, const std::string &message, const ServerConfig &config);
+		void setError(int code, const ServerConfig &config);
 		void setFile(const std::string &body, const std::string &mimeType);
 	
 		// Other functions
