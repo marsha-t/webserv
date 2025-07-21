@@ -69,3 +69,8 @@ const std::string &Route::getRedirectURL(void) const { return _redirectURL; }
 const std::map<std::string, std::string> &Route::getCGI(void) const { return _cgi; }
 std::size_t Route::getClientMaxBodySize(void) const { return _clientMaxBodySize; }
 bool Route::hasClientMaxBodySize(void) const { return _hasClientMaxBodySize; }
+
+bool Route::isMethodAllowed(const std::string &method) const {
+	const std::vector<std::string> &allowed = getMethods();
+	return std::find(allowed.begin(), allowed.end(), method) != allowed.end();
+}

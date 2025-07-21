@@ -25,7 +25,6 @@ class StaticFileHandler: public IRequestHandler
 		Route _route;
 		const ServerConfig &_config;
 		
-		bool isMethodAllowed(const Request &req) const;
 		std::string resolvePath(const Request &req) const;
 		bool isSafePath(const std::string &path) const;
 		bool handleDirectory(const Request &req, Response &res, std::string &path) const;

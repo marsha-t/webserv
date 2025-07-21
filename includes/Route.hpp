@@ -26,7 +26,6 @@ class Route
 		void	setRedirect(int statusCode, const std::string &url);
 		void	addCGI(const std::string &ext, const std::string &exec);
 		void	setClientMaxBodySize(std::size_t clientMaxBodySize);
-		// ...
 
 		// Getters
 		const std::string &getLocation(void) const;
@@ -41,7 +40,9 @@ class Route
 		const std::map<std::string, std::string> &getCGI(void) const;
 		std::size_t getClientMaxBodySize(void) const;
 		bool hasClientMaxBodySize(void) const;
-		// ...
+
+		// Others
+		bool isMethodAllowed(const std::string &method) const;
 
 	private:
 		std::string _location;
@@ -56,7 +57,6 @@ class Route
 		std::map<std::string, std::string> _cgi;
 		std::size_t _clientMaxBodySize;
 		bool	_hasClientMaxBodySize;
-		// ...
 };
 
 #endif

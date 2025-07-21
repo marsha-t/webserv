@@ -37,11 +37,6 @@ StaticFileHandler::~StaticFileHandler(void) {}
 */
 void StaticFileHandler::handle(const Request &req, Response &res)
 {
-	if (!isMethodAllowed(req)) {
-		res.setError(405, _config);
-		return;
-	}
-
 	std::string path = _route.getRoot() + req.getTarget().substr(_route.getLocation().length());
 	if (!isSafePath(path)) 
 	{
@@ -75,11 +70,6 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 	if (!serveFile(res, path)) {
 		res.setError(500, _config);
 	}
-}
-
-bool StaticFileHandler::isMethodAllowed(const Request &req) const {
-	const std::vector<std::string> &allowed = _route.getMethods();
-	return std::find(allowed.begin(), allowed.end(), req.getMethod()) != allowed.end();
 }
 
 std::string StaticFileHandler::resolvePath(const Request &req) const {

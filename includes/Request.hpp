@@ -57,6 +57,7 @@ class Request
         bool checkVersion(const std::string &version);
         bool parseRequestLine(std::istream &stream);
         bool parseHeaders(std::istream &stream);
+        bool isSupportedMethod(const std::string &method);
         bool handleChunkedEncoding(void);
         bool checkRequiredLengthHeader(void);
         bool checkContentLength(void);
