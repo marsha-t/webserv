@@ -37,24 +37,32 @@ StaticFileHandler::~StaticFileHandler(void) {}
 */
 void StaticFileHandler::handle(const Request &req, Response &res)
 {
-	std::string path = _route.getRoot() + req.getTarget().substr(_route.getLocation().length());
-	if (!isSafePath(path)) 
-	{
-		res.setError(403, _config);
-		return;
-	}
-
+	std::string relative = req.getTarget().substr(_route.getLocation().length());
+	std::string path = joinPath(_route.getRoot(), relative);
+	// std::string path = _route.getRoot() + req.getTarget().substr(_route.getLocation().length());
+	debugMsg("relative: "+ relative);
+	debugMsg("path: "+ path);
+	
 	struct stat s;
 	if (stat(path.c_str(), &s) != 0) 
 	{
 		res.setError(404, _config);
 		return;
 	}
+	if (!isSafePath(path)) 
+	{
+		debugMsg("111");
+		res.setError(403, _config);
+		return;
+	}
+
 
 	if (req.getMethod() == "DELETE") 
 	{
 		if (S_ISDIR(s.st_mode)) 
 		{
+			debugMsg("222");
+			
 			res.setError(403, _config);
 			return;
 		}
@@ -62,8 +70,12 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 			res.setError(500, _config);
 		return;
 	}
-	if (S_ISDIR(s.st_mode)) 
-	{
+	if (S_ISDIR(s.st_mode)) {
+		if (req.getTarget()[req.getTarget().size() - 1] != '/') {
+			res.setStatusLine(301, httpStatusMessage(301));
+			res.setHeader("Location", req.getTarget() + "/");
+			return;
+		}
 		if (!handleDirectory(req, res, path))
 			return;
 	}
@@ -78,31 +90,83 @@ std::string StaticFileHandler::resolvePath(const Request &req) const {
 
 
 // Checks whether target path is within root directory
+// bool StaticFileHandler::isSafePath(const std::string &path) const
+// {
+// 	// Extract the directory part of the path
+// 	std::string dirPart = path.substr(0, path.find_last_of("/"));
+// 	if (dirPart.empty())
+// 		dirPart = "."; // fallback if no directory part (e.g., just "index.html")
+
+// 	// Resolve the real path of the directory and the root
+// 	char *resolvedDir = realpath(dirPart.c_str(), NULL);
+// 	char *resolvedRoot = realpath(_route.getRoot().c_str(), NULL);
+
+// 	if (!resolvedDir || !resolvedRoot)
+// 	{
+// 		free(resolvedDir);
+// 		free(resolvedRoot);
+// 		return false;
+// 	}
+
+// 	std::string dirStr(resolvedDir);
+// 	std::string rootStr(resolvedRoot);
+
+// 	free(resolvedDir);
+// 	free(resolvedRoot);
+
+// 	// Allow if directory is the root itself
+// 	if (dirStr == rootStr)
+// 		return true;
+
+// 	// Allow if the directory is inside the root (prevents escape)
+// 	if (dirStr.compare(0, rootStr.length(), rootStr) == 0 &&
+// 		(dirStr.length() == rootStr.length() || dirStr[rootStr.length()] == '/'))
+// 		return true;
+
+// 	return false;
+// }
 bool StaticFileHandler::isSafePath(const std::string &path) const
 {
-	char *realPath = realpath(path.c_str(), NULL);
-	char *rootPath = realpath(_route.getRoot().c_str(), NULL);
-	
-	if (!realPath || !rootPath)
+	struct stat s;
+	std::string dirPart;
+
+	// If path is a directory (or ends with no slash), treat it as such
+	if (stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode)) {
+		dirPart = path;  // use full path if it's a directory
+	} else {
+		std::string::size_type slash = path.find_last_of("/");
+		if (slash != std::string::npos)
+			dirPart = path.substr(0, slash);
+		else
+			dirPart = "."; // fallback if no slashes
+	}
+
+	char *resolvedDir = realpath(dirPart.c_str(), NULL);
+	char *resolvedRoot = realpath(_route.getRoot().c_str(), NULL);
+	debugMsg("root: " + _route.getRoot());
+	if (!resolvedDir || !resolvedRoot)
 	{
-		free(realPath);
-		free(rootPath);
+		free(resolvedDir);
+		free(resolvedRoot);
 		return false;
 	}
-	
-	std::string rootPathStr(rootPath);
-	std::string realPathStr(realPath);
 
-	free(realPath);
-	free(rootPath);
+	std::string dirStr(resolvedDir);
+	std::string rootStr(resolvedRoot);
+	debugMsg("dirStr: " + dirStr);
+	debugMsg("rootStr: " + rootStr);
+	free(resolvedDir);
+	free(resolvedRoot);
 
-	if (realPathStr == rootPathStr)
+	if (dirStr == rootStr)
 		return true;
-	if (realPathStr.compare(0, rootPathStr.length(), rootPathStr) == 0 && realPathStr[rootPathStr.length()] == '/')
+	if (dirStr.compare(0, rootStr.length(), rootStr) == 0 &&
+		(dirStr.length() == rootStr.length() || dirStr[rootStr.length()] == '/'))
 		return true;
 
 	return false;
 }
+
 
 bool StaticFileHandler::handleDirectory(const Request &req, Response &res, std::string &path) const {
 	std::string indexPath;
@@ -112,7 +176,9 @@ bool StaticFileHandler::handleDirectory(const Request &req, Response &res, std::
 			res.setStatusLine(200, httpStatusMessage(200));
 			res.setHeader("Content-Type", "text/html");
 			res.setBody(listing);
-		} else {
+		} 
+		else {
+			debugMsg("333");
 			res.setError(403, _config);
 		}
 		return false;

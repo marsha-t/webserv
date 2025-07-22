@@ -27,7 +27,7 @@ void UploadHandler::handle(const Request &req, Response &res)
 	const std::map<std::string, std::vector<UploadedFile> >& uploadedFiles = req.getUploadedFiles();
 	if (uploadedFiles.empty())
 	{
-		res.setError(400, _config); // No files uploaded
+		res.setError(415, _config); // No files uploaded
 		return;
 	}
 	for (std::map<std::string, std::vector<UploadedFile> >::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it)
@@ -86,26 +86,30 @@ bool UploadHandler::saveFile(const std::string &filename, const std::string &con
 
 bool UploadHandler::isSafePath(const std::string &path, const std::string &baseDir) const
 {
-	char *resolvedPath = realpath(path.c_str(), NULL);
 	char *resolvedBase = realpath(baseDir.c_str(), NULL);
+	if (!resolvedBase)
+		return false;
 
-	if (!resolvedPath || !resolvedBase)
+	// Get directory part of the path
+	std::string dirPart = path.substr(0, path.find_last_of("/"));
+	char *resolvedDir = realpath(dirPart.c_str(), NULL);
+
+	if (!resolvedDir)
 	{
-		free(resolvedPath);
 		free(resolvedBase);
 		return false;
 	}
 
-	std::string pathStr(resolvedPath);
 	std::string baseStr(resolvedBase);
+	std::string dirStr(resolvedDir);
 
-	free(resolvedPath);
 	free(resolvedBase);
+	free(resolvedDir);
 
-	if (pathStr == baseStr)
+	if (dirStr == baseStr)
 		return true;
-	if (pathStr.compare(0, baseStr.length(), baseStr) == 0 &&
-		(pathStr[baseStr.length()] == '/' || pathStr.length() == baseStr.length()))
+	if (dirStr.compare(0, baseStr.length(), baseStr) == 0 &&
+		(dirStr[baseStr.length()] == '/' || dirStr.length() == baseStr.length()))
 		return true;
 
 	return false;

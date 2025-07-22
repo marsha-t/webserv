@@ -12,5 +12,6 @@ void    errorMsg(const std::string &msg);
 void	errorMsg(const std::string &msg, int fd);
 void	fatalError(const std::string &context);
 std::string httpStatusMessage(int code);
+std::string joinPath(const std::string &base, const std::string &relative);
 
 #endif

@@ -37,6 +37,7 @@ const std::map<int, std::string> &ServerConfig::getErrorPages(void) const { retu
 std::size_t ServerConfig::getClientMaxBodySize(void) const { return _clientMaxBodySize; }
 bool ServerConfig::hasClientMaxBodySize(void) const { return _hasClientMaxBodySize; }
 
+
 bool ServerConfig::matchRoute(const std::string &target, Route &matchedRoute) const
 {
 	size_t longestMatchLen = 0;
@@ -47,7 +48,11 @@ bool ServerConfig::matchRoute(const std::string &target, Route &matchedRoute) co
 		const std::string &location = _routes[i].getLocation();
 		if (target.compare(0, location.size(), location) == 0)
 		{
-			if (location == "/" || target.size() == location.size() ||  target[location.size()] == '/')
+			// Allow if:
+			// - it's root
+			// - the target continues with a slash
+			// - or the location itself ends with a slash (e.g., /files/)
+			if (location == "/" || target.size() == location.size() || target[location.size()] == '/' || location[location.size() - 1] == '/')
 			{
 				if (location.size() > longestMatchLen)
 				{
@@ -64,4 +69,3 @@ bool ServerConfig::matchRoute(const std::string &target, Route &matchedRoute) co
 	}
 	return false;
 }
-

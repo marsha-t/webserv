@@ -77,3 +77,16 @@ std::string httpStatusMessage(int code) {
 		default:  return "Bad Request";
 	}
 }
+
+std::string joinPath(const std::string &base, const std::string &relative) {
+	if (base.empty())
+		return relative;
+	if (relative.empty())
+		return base;
+
+	if (base[base.size() - 1] == '/' && relative[0] == '/')
+		return base + relative.substr(1); // remove one slash
+	if (base[base.size() - 1] != '/' && relative[0] != '/')
+		return base + "/" + relative; // add missing slash
+	return base + relative; // just concatenate
+}

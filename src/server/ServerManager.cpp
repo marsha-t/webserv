@@ -300,8 +300,8 @@ void ServerManager::processClientRequest(int clientFD, Request& request)
 	std::size_t maxBodySize = getMaxBodySize(matchedRoute, *config);
 	if (!validateRequestOrRespondError(clientFD, request, *config, maxBodySize))
 		return;
-
 	generateResponseAndBuffer(clientFD, request, matchedRoute, *config);
+
 }
 
 const ServerConfig* ServerManager::getSelectedConfig(int clientFD, const Request& request)
