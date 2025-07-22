@@ -135,7 +135,7 @@ void ServerManager::selectLoop(void)
 					{
 						if (parseError != 0)
 						{
-							std::string hostHeader = tempRequest.getHeader("Host");
+							std::string hostHeader = tempRequest.getHeader("host");
 							const Server* server = _clientToServer[fd];
 							const ServerConfig& config = server ? server->selectServer(hostHeader) : ServerConfig();
 							Response response;
@@ -333,7 +333,8 @@ const ServerConfig* ServerManager::getSelectedConfig(int clientFD, const Request
 	}
 
 	const Server* server = it->second;
-	return &server->selectServer(request.getHeader("Host"));
+	return &server->selectServer(request.getHeader("host"));
+
 }
 
 bool ServerManager::matchRouteOrRespond404(int clientFD, const Request& request, const ServerConfig& config, Route& matchedRoute)

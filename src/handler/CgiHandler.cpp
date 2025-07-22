@@ -17,7 +17,7 @@ std::map<std::string, std::string> CgiHandler::getCgiEnv(const Request &req) con
 
 	env["AUTH_TYPE"] = "";
 	env["CONTENT_LENGTH"] = toString(req.getBody().length());
-	env["CONTENT_TYPE"] = req.getHeader("Content-Type");
+	env["CONTENT_TYPE"] = req.getHeader("content-type");
 	env["GATEWAY_INTERFACE"] = "CGI/1.1";
 	env["PATH_INFO"] = req.getTarget();
 	env["PATH_TRANSLATED"] = _route.getRoot() + req.getTarget();
