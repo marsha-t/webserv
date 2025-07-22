@@ -54,6 +54,7 @@ class Request
 
         bool checkMethod(const std::string &method);
         bool checkTarget(const std::string &target);
+        bool isValidPercentEncoding(const std::string& uri);
         bool checkVersion(const std::string &version);
         bool parseRequestLine(std::istream &stream);
         bool parseHeaders(std::istream &stream);

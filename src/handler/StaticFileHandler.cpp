@@ -39,9 +39,6 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 {
 	std::string relative = req.getTarget().substr(_route.getLocation().length());
 	std::string path = joinPath(_route.getRoot(), relative);
-	// std::string path = _route.getRoot() + req.getTarget().substr(_route.getLocation().length());
-	debugMsg("relative: "+ relative);
-	debugMsg("path: "+ path);
 	
 	struct stat s;
 	if (stat(path.c_str(), &s) != 0) 
@@ -143,7 +140,6 @@ bool StaticFileHandler::isSafePath(const std::string &path) const
 
 	char *resolvedDir = realpath(dirPart.c_str(), NULL);
 	char *resolvedRoot = realpath(_route.getRoot().c_str(), NULL);
-	debugMsg("root: " + _route.getRoot());
 	if (!resolvedDir || !resolvedRoot)
 	{
 		free(resolvedDir);
@@ -153,8 +149,6 @@ bool StaticFileHandler::isSafePath(const std::string &path) const
 
 	std::string dirStr(resolvedDir);
 	std::string rootStr(resolvedRoot);
-	debugMsg("dirStr: " + dirStr);
-	debugMsg("rootStr: " + rootStr);
 	free(resolvedDir);
 	free(resolvedRoot);
 

@@ -116,7 +116,7 @@ void ServerManager::selectLoop(void)
 		fd_set read_fds = _master_read_fds;
 		fd_set write_fds = _master_write_fds;
 
-		debugMsg("Waiting for activity on fds (max_fd = ", _max_fd);
+		debugMsg("Waiting for activity on fds max_fd = ", _max_fd);
 		int ready = select(_max_fd + 1, &read_fds, &write_fds, NULL, NULL);
 		if (ready < 0)
 			fatalError("Select failed");
@@ -129,10 +129,24 @@ void ServerManager::selectLoop(void)
 					acceptNewClient(fd);
 				else
 				{
-					if (!handleClientRead(fd))
+					int parseError = 0;
+					Request tempRequest;
+					if (!handleClientRead(fd, parseError, &tempRequest))
 					{
-						cleanupClient(fd);
-						debugMsg("Cleaned up FD = ", fd);
+						if (parseError != 0)
+						{
+							std::string hostHeader = tempRequest.getHeader("Host");
+							const Server* server = _clientToServer[fd];
+							const ServerConfig& config = server ? server->selectServer(hostHeader) : ServerConfig();
+							Response response;
+							response.setError(parseError, config);
+							bufferResponse(fd, response.toString());
+						}
+						else
+						{
+							cleanupClient(fd);
+							debugMsg("Cleaned up FD = ", fd);
+						}
 						continue;
 					}
 					std::map<int, Request>::iterator it = _clientRequests.find(fd);
@@ -186,7 +200,7 @@ void ServerManager::acceptNewClient(int serverFD)
 // Stores raw data into _clientBuffers
 // If headers are complete, parses into Request and stores it in _clientRequests
 // If headers are incomplete, return to poll loop to read some more 
-bool ServerManager::handleClientRead(int clientFD)
+bool ServerManager::handleClientRead(int clientFD, int &parseError, Request *tempReq)
 {
 	std::string& buffer = _clientBuffers[clientFD];
 
@@ -196,16 +210,21 @@ bool ServerManager::handleClientRead(int clientFD)
 	if (!headersComplete(buffer))
 		return true;
 
-	Request tempReq;
-	if (!parseTempHeaders(buffer, tempReq))
+	if (!parseTempHeaders(buffer, *tempReq))
+	{
+		parseError = tempReq->getParseErrorCode();
 		return false;
+	}
 
-	if (!isBodyComplete(buffer, tempReq))
+	if (!isBodyComplete(buffer, *tempReq))
 		return true;
 
 	if (!parseFullRequest(buffer, _clientRequests[clientFD]))
+	{
+		*tempReq = _clientRequests[clientFD];
+		parseError = _clientRequests[clientFD].getParseErrorCode();
 		return false;
-
+	}
 	return true;
 }
 

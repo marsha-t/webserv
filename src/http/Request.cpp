@@ -114,6 +114,29 @@ bool Request::checkTarget(const std::string &target)
 		_parseErrorCode = 414;
 		return false;
 	}
+	if (!isValidPercentEncoding(target))
+	{
+		_parseErrorCode = 400; // Bad Request for malformed %
+		return false;
+	}
+	return true;
+}
+
+bool Request::isValidPercentEncoding(const std::string& uri)
+{
+	for (size_t i = 0; i < uri.length(); ++i)
+	{
+		if (uri[i] == '%')
+		{
+			if (i + 2 >= uri.length() ||
+				!std::isxdigit(uri[i + 1]) ||
+				!std::isxdigit(uri[i + 2]))
+			{
+				return false;
+			}
+			i += 2; // Skip the next two hex digits
+		}
+	}
 	return true;
 }
 

@@ -92,7 +92,6 @@ void Server::initSocket(void)
 	}
 }
 
-// TODO consider renaming this to selectConfig
 const ServerConfig& Server::selectServer(const std::string &hostHeader) const
 {
 	std::string hostname = hostHeader;

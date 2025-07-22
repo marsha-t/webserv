@@ -84,13 +84,19 @@ void Response::setError(int code, const ServerConfig &config)
 			if (!content.empty())
 				setBody(content);
 			else
+			{
 				setDefaultErrorBody(code, message);
+			}
 		}
 		else
+		{
 			setDefaultErrorBody(code, message);
+		}
 	}
 	else
+	{
 		setDefaultErrorBody(code, message);
+	}
 }
 
 void Response::setDefaultErrorBody(int code, const std::string &message)
