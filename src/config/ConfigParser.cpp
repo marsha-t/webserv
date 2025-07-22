@@ -143,6 +143,8 @@ void ConfigParser::parseErrorPage(ServerConfig &server, const std::vector<std::s
 	if (tokens.size() != 3)
 		throw std::runtime_error("Invalid 'error_page' directive");
 	int code = std::atoi(tokens[1].c_str());
+	if (code < 400 || code > 599)
+		throw std::runtime_error("Invalid HTTP error code in 'error_page' directive");
 	server.addErrorPage(code, tokens[2]);
 }
 
@@ -172,86 +174,211 @@ void ConfigParser::parseLocation(ServerConfig &server, std::istream &in, const s
 	server.addRoute(route);
 }
 
+// void ConfigParser::parseLocationBlock(std::istream &in, Route &route)
+// {
+// 	std::string line;
+// 	bool closingBrace = false;
+// 	bool rootSet = false;
+// 	bool autoindexSet = false;
+// 	bool redirectSet = false;
+// 	bool uploadDirSet = false;
+	
+// 	while (std::getline(in, line))
+// 	{
+// 		line = cleanLine(line);
+// 		if (line.empty())
+// 			continue;
+// 		if (line == "}")
+// 		{
+// 			closingBrace = true;
+// 			break;
+// 		}
+
+// 		std::vector<std::string> tokens = tokenize(line);
+// 		if (tokens[0] == "root" && tokens.size() == 2)
+// 		{
+// 			if (rootSet)
+// 				throw std::runtime_error("Duplicate 'root' directive in location block");
+// 			route.setRoot(tokens[1]);
+// 			rootSet = true;
+// 		}
+// 		else if (tokens[0] == "index" && tokens.size() >= 2)
+// 		{
+// 			for (size_t i = 1; i < tokens.size(); ++i)
+// 				route.addIndexFile(tokens[i]);
+// 		}
+// 		else if (tokens[0] == "autoindex" && tokens.size() == 2)
+// 		{
+// 			if (autoindexSet)
+// 				throw std::runtime_error("Duplicate 'autoindex' directive in location block");
+// 			if (tokens[1] == "on")
+// 				route.setAutoindex(true);
+// 			else if (tokens[1] == "off")
+// 				route.setAutoindex(false);
+// 			else
+// 				throw std::runtime_error("Invalid value for 'autoindex': " + tokens[1]);
+// 			autoindexSet = true;
+// 		}
+// 		else if (tokens[0] == "methods" && tokens.size() >= 2)
+// 		{
+// 			for (size_t i = 1; i < tokens.size(); ++i)
+// 				route.addAllowedMethod(tokens[i]);
+// 		}
+// 		else if (tokens[0] == "return" && tokens.size() == 3)
+// 		{
+// 			if (redirectSet)
+// 				throw std::runtime_error("Duplicate 'return' directive in location block");
+// 			int statusCode = std::atoi(tokens[1].c_str());
+// 			if (statusCode < 300 || statusCode > 399)
+// 				throw std::runtime_error("Invalid HTTP redirect status code in 'return' directive");
+// 			route.setRedirect(statusCode, tokens[2]);
+// 			redirectSet = true;
+// 		}
+// 		else if (tokens[0] == "upload_dir" && tokens.size() == 2)
+// 		{
+// 			if (uploadDirSet)
+// 				throw std::runtime_error("Duplicate 'upload_dir' directive in location block");
+// 			route.setUploadDir(tokens[1]);
+// 			uploadDirSet = true;
+// 		}
+// 		else if (tokens[0] == "client_max_body_size" && tokens.size() == 2)
+// 		{
+// 			route.setClientMaxBodySize(std::atoi(tokens[1].c_str()));
+// 		}
+// 		else if (tokens[0] == "cgi" && tokens.size() == 3)
+// 		{
+// 			route.addCGI(tokens[1], tokens[2]);
+// 		}
+// 		else
+// 			throw std::runtime_error("Unknown or malformed directive in location block: " + line);
+// 	}
+	
+// 	if (!closingBrace)
+// 		throw std::runtime_error("Missing closing '}' in location block for path: " + route.getLocation());
+// }
+
+
+
 void ConfigParser::parseLocationBlock(std::istream &in, Route &route)
 {
 	std::string line;
 	bool closingBrace = false;
-	bool rootSet = false;
-	bool autoindexSet = false;
-	bool redirectSet = false;
-	bool uploadDirSet = false;
-	
+	bool rootSet = false, autoindexSet = false, redirectSet = false, uploadDirSet = false;
+
 	while (std::getline(in, line))
 	{
 		line = cleanLine(line);
-		if (line.empty())
-			continue;
-		if (line == "}")
-		{
-			closingBrace = true;
-			break;
-		}
+		if (line.empty()) continue;
+		if (line == "}") { closingBrace = true; break; }
 
 		std::vector<std::string> tokens = tokenize(line);
-		if (tokens[0] == "root" && tokens.size() == 2)
-		{
-			if (rootSet)
-				throw std::runtime_error("Duplicate 'root' directive in location block");
-			route.setRoot(tokens[1]);
-			rootSet = true;
-		}
-		else if (tokens[0] == "index" && tokens.size() >= 2)
-		{
-			for (size_t i = 1; i < tokens.size(); ++i)
-				route.addIndexFile(tokens[i]);
-		}
-		else if (tokens[0] == "autoindex" && tokens.size() == 2)
-		{
-			if (autoindexSet)
-				throw std::runtime_error("Duplicate 'autoindex' directive in location block");
-			if (tokens[1] == "on")
-				route.setAutoindex(true);
-			else if (tokens[1] == "off")
-				route.setAutoindex(false);
-			else
-				throw std::runtime_error("Invalid value for 'autoindex': " + tokens[1]);
-			autoindexSet = true;
-		}
-		else if (tokens[0] == "methods" && tokens.size() >= 2)
-		{
-			for (size_t i = 1; i < tokens.size(); ++i)
-				route.addAllowedMethod(tokens[i]);
-		}
-		else if (tokens[0] == "return" && tokens.size() == 3)
-		{
-			if (redirectSet)
-				throw std::runtime_error("Duplicate 'return' directive in location block");
-			int statusCode = std::atoi(tokens[1].c_str());
-			route.setRedirect(statusCode, tokens[2]);
-			redirectSet = true;
-		}
-		else if (tokens[0] == "upload_dir" && tokens.size() == 2)
-		{
-			if (uploadDirSet)
-				throw std::runtime_error("Duplicate 'upload_dir' directive in location block");
-			route.setUploadDir(tokens[1]);
-			uploadDirSet = true;
-		}
-		else if (tokens[0] == "client_max_body_size" && tokens.size() == 2)
-		{
-			route.setClientMaxBodySize(std::atoi(tokens[1].c_str()));
-		}
-		else if (tokens[0] == "cgi" && tokens.size() == 3)
-		{
-			route.addCGI(tokens[1], tokens[2]);
-		}
+		const std::string& directive = tokens[0];
+
+		if (directive == "root")
+			handleRootDirective(tokens, route, rootSet);
+		else if (directive == "index")
+			handleIndexDirective(tokens, route);
+		else if (directive == "autoindex")
+			handleAutoindexDirective(tokens, route, autoindexSet);
+		else if (directive == "methods")
+			handleMethodsDirective(tokens, route);
+		else if (directive == "return")
+			handleReturnDirective(tokens, route, redirectSet);
+		else if (directive == "upload_dir")
+			handleUploadDirDirective(tokens, route, uploadDirSet);
+		else if (directive == "client_max_body_size")
+			handleClientMaxBodyDirective(tokens, route);
+		else if (directive == "cgi")
+			handleCGIDirective(tokens, route);
 		else
 			throw std::runtime_error("Unknown or malformed directive in location block: " + line);
 	}
-	
+
 	if (!closingBrace)
 		throw std::runtime_error("Missing closing '}' in location block for path: " + route.getLocation());
 }
 
+void ConfigParser::handleRootDirective(const std::vector<std::string>& tokens, Route& route, bool& rootSet)
+{
+	if (tokens.size() != 2)
+		throw std::runtime_error("Invalid 'root' directive");
+	if (rootSet)
+		throw std::runtime_error("Duplicate 'root' directive in location block");
+	route.setRoot(tokens[1]);
+	rootSet = true;
+}
 
+void ConfigParser::handleIndexDirective(const std::vector<std::string>& tokens, Route& route)
+{
+	if (tokens.size() < 2)
+		throw std::runtime_error("Invalid 'index' directive");
+	for (size_t i = 1; i < tokens.size(); ++i)
+		route.addIndexFile(tokens[i]);
+}
 
+void ConfigParser::handleAutoindexDirective(const std::vector<std::string>& tokens, Route& route, bool& autoindexSet)
+{
+	if (tokens.size() != 2)
+		throw std::runtime_error("Invalid 'autoindex' directive");
+	if (autoindexSet)
+		throw std::runtime_error("Duplicate 'autoindex' directive in location block");
+
+	if (tokens[1] == "on")
+		route.setAutoindex(true);
+	else if (tokens[1] == "off")
+		route.setAutoindex(false);
+	else
+		throw std::runtime_error("Invalid value for 'autoindex': " + tokens[1]);
+
+	autoindexSet = true;
+}
+
+void ConfigParser::handleMethodsDirective(const std::vector<std::string>& tokens, Route& route)
+{
+	if (tokens.size() < 2)
+		throw std::runtime_error("Invalid 'methods' directive");
+	for (size_t i = 1; i < tokens.size(); ++i)
+		route.addAllowedMethod(tokens[i]);
+}
+
+void ConfigParser::handleReturnDirective(const std::vector<std::string>& tokens, Route& route, bool& redirectSet)
+{
+	if (tokens.size() != 3)
+		throw std::runtime_error("Invalid 'return' directive");
+	if (redirectSet)
+		throw std::runtime_error("Duplicate 'return' directive in location block");
+
+	int statusCode = std::atoi(tokens[1].c_str());
+	if (statusCode < 300 || statusCode > 399)
+		throw std::runtime_error("Invalid HTTP redirect status code in 'return' directive");
+
+	route.setRedirect(statusCode, tokens[2]);
+	redirectSet = true;
+}
+
+void ConfigParser::handleUploadDirDirective(const std::vector<std::string>& tokens, Route& route, bool& uploadDirSet)
+{
+	if (tokens.size() != 2)
+		throw std::runtime_error("Invalid 'upload_dir' directive");
+	if (uploadDirSet)
+		throw std::runtime_error("Duplicate 'upload_dir' directive in location block");
+	route.setUploadDir(tokens[1]);
+	uploadDirSet = true;
+}
+
+void ConfigParser::handleClientMaxBodyDirective(const std::vector<std::string>& tokens, Route& route)
+{
+	if (tokens.size() != 2)
+		throw std::runtime_error("Invalid 'client_max_body_size' directive");
+	int size = std::atoi(tokens[1].c_str());
+	if (size < 0)
+		throw std::runtime_error("Negative value in 'client_max_body_size'");
+	route.setClientMaxBodySize(size);
+}
+
+void ConfigParser::handleCGIDirective(const std::vector<std::string>& tokens, Route& route)
+{
+	if (tokens.size() != 3)
+		throw std::runtime_error("Invalid 'cgi' directive");
+	route.addCGI(tokens[1], tokens[2]);
+}

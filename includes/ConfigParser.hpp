@@ -36,7 +36,14 @@ class ConfigParser
 		void 	parseErrorPage(ServerConfig &server, const std::vector<std::string> &tokens);
 		void	parseLocation(ServerConfig &server, std::istream &in, const std::vector<std::string> &tokens);
 		void	parseLocationBlock(std::istream &in, Route &route);
-		void	parseCGIBlock(std::istream &in, Route &route);
+		void	handleRootDirective(const std::vector<std::string>& tokens, Route& route, bool& rootSet);
+		void	handleIndexDirective(const std::vector<std::string>& tokens, Route& route);
+		void	handleAutoindexDirective(const std::vector<std::string>& tokens, Route& route, bool& autoindexSet);
+		void	handleMethodsDirective(const std::vector<std::string>& tokens, Route& route);
+		void	handleReturnDirective(const std::vector<std::string>& tokens, Route& route, bool& redirectSet);
+		void	handleUploadDirDirective(const std::vector<std::string>& tokens, Route& route, bool& uploadDirSet);
+		void	handleClientMaxBodyDirective(const std::vector<std::string>& tokens, Route& route);
+		void	handleCGIDirective(const std::vector<std::string>& tokens, Route& route);
 
 };
 
