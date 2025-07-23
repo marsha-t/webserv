@@ -134,20 +134,16 @@ void ServerManager::selectLoop(void)
 					Request tempRequest;
 					if (!handleClientRead(fd, parseError, &tempRequest))
 					{
-						if (parseError != 0)
+						if (parseError > 0)
+							sendErrorResponse(fd, parseError, tempRequest);
+						else if (parseError == -1)
 						{
-							std::string hostHeader = tempRequest.getHeader("host");
-							const Server* server = _clientToServer[fd];
-							const ServerConfig& config = server ? server->selectServer(hostHeader) : ServerConfig();
-							Response response;
-							response.setError(parseError, config);
-							bufferResponse(fd, response.toString());
-						}
-						else
-						{
-							cleanupClient(fd);
+							cleanupClient(fd);  // client closed connection
 							debugMsg("Cleaned up FD = ", fd);
 						}
+						else
+							sendErrorResponse(fd, 500, tempRequest);  // fallback error
+
 						continue;
 					}
 					std::map<int, Request>::iterator it = _clientRequests.find(fd);
@@ -160,7 +156,6 @@ void ServerManager::selectLoop(void)
 		}
 	}
 }
-
 
 bool ServerManager::isListeningSocket(int fd) const
 {
@@ -205,7 +200,7 @@ bool ServerManager::handleClientRead(int clientFD, int &parseError, Request *tem
 {
 	std::string& buffer = _clientBuffers[clientFD];
 
-	if (!readFromClient(clientFD, buffer))
+	if (!readFromClient(clientFD, buffer, parseError))
 		return false;
 
 	if (!headersComplete(buffer))
@@ -229,7 +224,18 @@ bool ServerManager::handleClientRead(int clientFD, int &parseError, Request *tem
 	return true;
 }
 
-bool ServerManager::readFromClient(int fd, std::string& buffer)
+void ServerManager::sendErrorResponse(int fd, int errorCode, const Request& request)
+{
+	std::string hostHeader = request.getHeader("host");
+	const Server* server = _clientToServer[fd];
+	const ServerConfig& config = server ? server->selectServer(hostHeader) : ServerConfig();
+
+	Response response;
+	response.setError(errorCode, config);
+	bufferResponse(fd, response.toString());
+}
+
+bool ServerManager::readFromClient(int fd, std::string& buffer, int& parseError)
 {
 	char tempBuf[1024];
 	std::memset(tempBuf, 0, sizeof(tempBuf));
@@ -238,11 +244,13 @@ bool ServerManager::readFromClient(int fd, std::string& buffer)
 	if (bytesRead < 0)
 	{
 		errorMsg("Read failed on FD = ", fd);
+		parseError = 0;   // server error
 		return false;
 	}
 	else if (bytesRead == 0)
 	{
 		debugMsg("Client closed connection: FD = ", fd);
+		parseError = -1;  // client disconnected
 		return false;
 	}
 

@@ -40,8 +40,9 @@ class ServerManager
 		void	selectLoop(void);
 		bool	isListeningSocket(int fd) const;
 		void	acceptNewClient(int serverFD);
-		bool handleClientRead(int fd, int &parseError, Request *tempReq);
-		bool 	readFromClient(int fd, std::string& buffer);
+		bool	handleClientRead(int fd, int &parseError, Request *tempReq);
+		void	sendErrorResponse(int fd, int errorCode, const Request& request);
+		bool	readFromClient(int fd, std::string& buffer, int& parseError);
 		bool	headersComplete(const std::string& buffer);
 		bool	parseTempHeaders(const std::string& buffer, Request& tempReq);
 		bool	isBodyComplete(const std::string& buffer, const Request& tempReq);

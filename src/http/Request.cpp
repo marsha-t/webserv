@@ -51,7 +51,10 @@ bool	Request::parse(const std::string &raw)
 {
 	std::string::size_type headerEnd = raw.find("\r\n\r\n");
 	if (headerEnd == std::string::npos)
+	{
+		_parseErrorCode = 400;
 		return false;
+	}
 	std::string headers = raw.substr(0, headerEnd);
 	_body = raw.substr(headerEnd + 4);
 	std::istringstream stream(headers);
@@ -68,7 +71,6 @@ bool	Request::parse(const std::string &raw)
 			_parseErrorCode = 400;
 		return false;
 	}
-
 	return true;
 }
 
