@@ -99,6 +99,11 @@ bool UploadHandler::saveFile(const std::string &filename, const std::string &con
 	if (!ofs.is_open())
 		return false;
 	ofs.write(content.c_str(), content.length());
+	if (!ofs)
+	{
+		ofs.close();
+		return false;
+	}
 	ofs.close();
 	return true;
 }
