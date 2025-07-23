@@ -17,26 +17,30 @@ IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Rout
 		debugMsg("405 Method Not Allowed for " + req.getMethod());
 		return NULL;
 	}
-
 	if (route.isRedirect())
 	{
 		debugMsg("Selecting RedirectHandler");
-		return (new RedirectHandler(route, config));
+		return new RedirectHandler(route, config);
 	}
-	if (req.getMethod() == "POST" && !route.getUploadDir().empty())
-	{
-		debugMsg("Selecting UploadHandler");
-		return (new UploadHandler(route, config));
-	}
-	if (isCgiRequest(req, route))
+	if (isCgiRequest(req, route) && (req.getMethod() == "GET" || req.getMethod() == "POST"))
 	{
 		std::string ext = toLower(getFileExtension(req.getTarget()));
 		debugMsg("Selecting CgiHandler for extension: " + ext);
 		return new CgiHandler(route, config);
 	}
-	debugMsg("Selecting StaticFileHandler");
-	return (new StaticFileHandler(route, config));
+	if (req.getMethod() == "POST" && !route.getUploadDir().empty())
+	{
+		debugMsg("Selecting UploadHandler");
+		return new UploadHandler(route, config);
+	}
+	if (req.getMethod() == "POST" || req.getMethod() == "GET" || req.getMethod() == "DELETE")
+	{
+		debugMsg("Selecting StaticFileHandler");
+		return new StaticFileHandler(route, config);
+	}
+	return NULL;
 }
+
 
 std::string RequestDispatcher::getFileExtension(const std::string &path) const
 {

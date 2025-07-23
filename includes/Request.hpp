@@ -70,7 +70,7 @@ class Request
         bool extractContentDisposition(const std::string &headers, std::string &contentDisposition) const;
         bool extractFieldNames(const std::string &contentDisposition, std::string &name, std::string &filename) const;
         bool extractPartContent(std::string::size_type &prevPos, std::string::size_type &nextBoundaryPos,
-        const std::string &boundary, std::string &partContent) const;
+            const std::string &boundary, std::string &partContent) const;
 };
 
 #endif

@@ -85,6 +85,7 @@ void	ServerManager::setup(void)
 			}
 		}
 		std::cerr << e.what() << std::endl;
+		throw ;
 	}
 }
 
@@ -280,11 +281,6 @@ bool ServerManager::isBodyComplete(const std::string& buffer, const Request& tem
 	{
 		char* endptr;
 		long contentLength = std::strtol(contentLengthStr.c_str(), &endptr, 10);
-		if (*endptr != '\0' || contentLength < 0)
-		{
-			errorMsg("Invalid Content-Length");
-			return false;
-		}
 		std::size_t bodySize = buffer.length() - (headerEnd + 4);
 		return bodySize >= static_cast<size_t>(contentLength);
 	}
@@ -310,7 +306,12 @@ void ServerManager::processClientRequest(int clientFD, Request& request)
 {
 	const ServerConfig* config = getSelectedConfig(clientFD, request);
 	if (!config)
+	{
+		Response res;
+		res.setError(500, *config);
+		bufferResponse(clientFD, res.toString());
 		return;
+	}
 
 	Route matchedRoute;
 	if (!matchRouteOrRespond404(clientFD, request, *config, matchedRoute))
@@ -331,10 +332,8 @@ const ServerConfig* ServerManager::getSelectedConfig(int clientFD, const Request
 		errorMsg("No server associated with client", clientFD);
 		return NULL;
 	}
-
 	const Server* server = it->second;
 	return &server->selectServer(request.getHeader("host"));
-
 }
 
 bool ServerManager::matchRouteOrRespond404(int clientFD, const Request& request, const ServerConfig& config, Route& matchedRoute)

@@ -25,7 +25,6 @@ StaticFileHandler::StaticFileHandler(const Route &route, const ServerConfig &con
 StaticFileHandler::~StaticFileHandler(void) {}
 
 /*
-	- Check that method is allowed
 	- Create full path and check that it is safe
 	- If it is a directory, look for index file
 		- if found, serve it
@@ -52,7 +51,6 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 		res.setError(403, _config);
 		return;
 	}
-
 
 	if (req.getMethod() == "DELETE") 
 	{
@@ -85,43 +83,7 @@ std::string StaticFileHandler::resolvePath(const Request &req) const {
 	return _route.getRoot() + req.getTarget().substr(_route.getLocation().length());
 }
 
-
 // Checks whether target path is within root directory
-// bool StaticFileHandler::isSafePath(const std::string &path) const
-// {
-// 	// Extract the directory part of the path
-// 	std::string dirPart = path.substr(0, path.find_last_of("/"));
-// 	if (dirPart.empty())
-// 		dirPart = "."; // fallback if no directory part (e.g., just "index.html")
-
-// 	// Resolve the real path of the directory and the root
-// 	char *resolvedDir = realpath(dirPart.c_str(), NULL);
-// 	char *resolvedRoot = realpath(_route.getRoot().c_str(), NULL);
-
-// 	if (!resolvedDir || !resolvedRoot)
-// 	{
-// 		free(resolvedDir);
-// 		free(resolvedRoot);
-// 		return false;
-// 	}
-
-// 	std::string dirStr(resolvedDir);
-// 	std::string rootStr(resolvedRoot);
-
-// 	free(resolvedDir);
-// 	free(resolvedRoot);
-
-// 	// Allow if directory is the root itself
-// 	if (dirStr == rootStr)
-// 		return true;
-
-// 	// Allow if the directory is inside the root (prevents escape)
-// 	if (dirStr.compare(0, rootStr.length(), rootStr) == 0 &&
-// 		(dirStr.length() == rootStr.length() || dirStr[rootStr.length()] == '/'))
-// 		return true;
-
-// 	return false;
-// }
 bool StaticFileHandler::isSafePath(const std::string &path) const
 {
 	struct stat s;
@@ -160,7 +122,6 @@ bool StaticFileHandler::isSafePath(const std::string &path) const
 
 	return false;
 }
-
 
 bool StaticFileHandler::handleDirectory(const Request &req, Response &res, std::string &path) const {
 	std::string indexPath;

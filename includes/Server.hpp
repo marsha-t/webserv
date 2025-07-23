@@ -29,7 +29,8 @@ class Server
 	private: 
 		int _serverFD;
 		std::vector<ServerConfig> _configs;
-		std::map<std::string, ServerConfig> _nameToConfig;
+		std::map<std::string, const ServerConfig*> _nameToConfig;
+
 
 };
 

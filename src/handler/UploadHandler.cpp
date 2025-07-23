@@ -4,58 +4,6 @@ UploadHandler::UploadHandler(const Route &route, const ServerConfig &config) : _
 
 UploadHandler::~UploadHandler(void) {}
 
-// void UploadHandler::handle(const Request &req, Response &res)
-// {
-// 	if (req.getMethod() != "POST")
-// 	{
-// 		res.setError(405, _config);
-// 		return;
-// 	}
-
-// 	std::string uploadDir = _route.getUploadDir();
-// 	if (uploadDir.empty())
-// 	{
-// 		res.setError(500, _config); // Upload directory not configured
-// 		return;
-// 	}
-// 	struct stat s;
-// 	if (stat(uploadDir.c_str(), &s) != 0 || !S_ISDIR(s.st_mode) || access(uploadDir.c_str(), W_OK) != 0)
-// 	{
-// 		res.setError(500, _config); // path doesn't exist, isn't directory or isn't writable
-// 		return;
-// 	}
-// 	const std::map<std::string, std::vector<UploadedFile> >& uploadedFiles = req.getUploadedFiles();
-// 	if (uploadedFiles.empty())
-// 	{
-// 		res.setError(415, _config); // No files uploaded
-// 		return;
-// 	}
-// 	for (std::map<std::string, std::vector<UploadedFile> >::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it)
-// 	{
-// 		const std::vector<UploadedFile>& fileList = it->second;
-// 		for (std::vector<UploadedFile>::const_iterator fileIt = fileList.begin(); fileIt != fileList.end(); ++fileIt)
-// 		{
-// 			std::string safeFilename = sanitizeFilename(fileIt->filename);
-// 			std::string fullPath = uploadDir + "/" + safeFilename;
-// 			if (access(fullPath.c_str(), F_OK) == 0) {
-// 				res.setError(409, _config); // Conflict: file exists
-// 				return;
-// 			}
-// 			if (!isSafePath(fullPath, uploadDir)) {
-// 				res.setError(403, _config);
-// 				return;
-// 			}
-// 			if (!saveFile(fullPath, fileIt->content))
-// 			{
-// 				res.setError(500, _config);
-// 				return;
-// 			}
-// 		}
-// 	}
-// 	res.setStatusLine(201, httpStatusMessage(201));
-// 	res.setHeader("Location", uploadDir);
-// }
-
 void UploadHandler::handle(const Request &req, Response &res)
 {
 	if (req.getMethod() != "POST")

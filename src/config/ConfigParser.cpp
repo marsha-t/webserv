@@ -82,8 +82,13 @@ void	ConfigParser::parseServerBlock(std::istream &in)
 			parseServerName(server, tokens);
 		else if (tokens[0] == "error_page")
 			parseErrorPage(server, tokens);
-		else if (tokens[0] == "client_max_body_size" && tokens.size() == 2)
-			server.setClientMaxBodySize(std::atoi(tokens[1].c_str()));
+		else if (tokens[0] == "client_max_body_size" && tokens.size() == 2) 
+		{
+			int size = std::atoi(tokens[1].c_str());
+			if (size < 0)
+				throw std::runtime_error("Negative value in 'client_max_body_size'");
+			server.setClientMaxBodySize(size);
+		}
 		else if (tokens[0] == "location")
 			parseLocation(server, in, tokens);
 		else
@@ -173,91 +178,6 @@ void ConfigParser::parseLocation(ServerConfig &server, std::istream &in, const s
 	parseLocationBlock(in, route);
 	server.addRoute(route);
 }
-
-// void ConfigParser::parseLocationBlock(std::istream &in, Route &route)
-// {
-// 	std::string line;
-// 	bool closingBrace = false;
-// 	bool rootSet = false;
-// 	bool autoindexSet = false;
-// 	bool redirectSet = false;
-// 	bool uploadDirSet = false;
-	
-// 	while (std::getline(in, line))
-// 	{
-// 		line = cleanLine(line);
-// 		if (line.empty())
-// 			continue;
-// 		if (line == "}")
-// 		{
-// 			closingBrace = true;
-// 			break;
-// 		}
-
-// 		std::vector<std::string> tokens = tokenize(line);
-// 		if (tokens[0] == "root" && tokens.size() == 2)
-// 		{
-// 			if (rootSet)
-// 				throw std::runtime_error("Duplicate 'root' directive in location block");
-// 			route.setRoot(tokens[1]);
-// 			rootSet = true;
-// 		}
-// 		else if (tokens[0] == "index" && tokens.size() >= 2)
-// 		{
-// 			for (size_t i = 1; i < tokens.size(); ++i)
-// 				route.addIndexFile(tokens[i]);
-// 		}
-// 		else if (tokens[0] == "autoindex" && tokens.size() == 2)
-// 		{
-// 			if (autoindexSet)
-// 				throw std::runtime_error("Duplicate 'autoindex' directive in location block");
-// 			if (tokens[1] == "on")
-// 				route.setAutoindex(true);
-// 			else if (tokens[1] == "off")
-// 				route.setAutoindex(false);
-// 			else
-// 				throw std::runtime_error("Invalid value for 'autoindex': " + tokens[1]);
-// 			autoindexSet = true;
-// 		}
-// 		else if (tokens[0] == "methods" && tokens.size() >= 2)
-// 		{
-// 			for (size_t i = 1; i < tokens.size(); ++i)
-// 				route.addAllowedMethod(tokens[i]);
-// 		}
-// 		else if (tokens[0] == "return" && tokens.size() == 3)
-// 		{
-// 			if (redirectSet)
-// 				throw std::runtime_error("Duplicate 'return' directive in location block");
-// 			int statusCode = std::atoi(tokens[1].c_str());
-// 			if (statusCode < 300 || statusCode > 399)
-// 				throw std::runtime_error("Invalid HTTP redirect status code in 'return' directive");
-// 			route.setRedirect(statusCode, tokens[2]);
-// 			redirectSet = true;
-// 		}
-// 		else if (tokens[0] == "upload_dir" && tokens.size() == 2)
-// 		{
-// 			if (uploadDirSet)
-// 				throw std::runtime_error("Duplicate 'upload_dir' directive in location block");
-// 			route.setUploadDir(tokens[1]);
-// 			uploadDirSet = true;
-// 		}
-// 		else if (tokens[0] == "client_max_body_size" && tokens.size() == 2)
-// 		{
-// 			route.setClientMaxBodySize(std::atoi(tokens[1].c_str()));
-// 		}
-// 		else if (tokens[0] == "cgi" && tokens.size() == 3)
-// 		{
-// 			route.addCGI(tokens[1], tokens[2]);
-// 		}
-// 		else
-// 			throw std::runtime_error("Unknown or malformed directive in location block: " + line);
-// 	}
-	
-// 	if (!closingBrace)
-// 		throw std::runtime_error("Missing closing '}' in location block for path: " + route.getLocation());
-// }
-
-
 
 void ConfigParser::parseLocationBlock(std::istream &in, Route &route)
 {

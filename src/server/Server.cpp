@@ -2,50 +2,59 @@
 
 Server::Server(void): _serverFD(-1) {}
 
-Server::Server(const Server &obj): _serverFD(obj._serverFD), _configs(obj._configs)
+Server::Server(const Server &obj) : _serverFD(obj._serverFD), _configs(obj._configs)
 {
 	for (size_t i = 0; i < _configs.size(); ++i)
 	{
-		const std::vector<std::string> &names = _configs[i].getServerNames();
+		const std::vector<std::string>& names = _configs[i].getServerNames();
 		for (size_t j = 0; j < names.size(); ++j)
 		{
-			if (_nameToConfig.count(names[j]) == 0)
-				_nameToConfig.insert(std::make_pair(names[j], _configs[i]));
-			else 
-				std::cerr << "Warning: Duplicate server_name '" << names[j] << "' ignored\n";
+			const std::string& name = names[j];
+			if (name.empty())
+				continue;
+			if (_nameToConfig.count(name) != 0)
+				throw std::runtime_error("Duplicate server_name '" + name + "' in copy constructor");
+			_nameToConfig.insert(std::make_pair(name, &_configs[i]));
 		}
 	}
 }
 
-Server::Server(const std::vector<ServerConfig> &configs): _serverFD(-1), _configs(configs)
+Server::Server(const std::vector<ServerConfig>& configs) : _serverFD(-1), _configs(configs)
 {
-	for (size_t i = 0; i < configs.size(); ++i)
+	for (size_t i = 0; i < _configs.size(); ++i)
 	{
-		const std::vector<std::string> &names = configs[i].getServerNames();
+		const std::vector<std::string>& names = _configs[i].getServerNames();
 		for (size_t j = 0; j < names.size(); ++j)
 		{
-			if (_nameToConfig.count(names[j]) == 0)  // only insert first occurrence
-				_nameToConfig.insert(std::make_pair(names[j], configs[i]));
+			const std::string& name = names[j];
+			if (name.empty())
+				continue;
+			if (_nameToConfig.count(name) != 0)
+				throw std::runtime_error("Duplicate server_name '" + name + "' for same host:port");
+			_nameToConfig.insert(std::make_pair(name, &_configs[i]));
 		}
 	}
 }
 
-Server &Server::operator=(const Server &obj)
+Server& Server::operator=(const Server& obj)
 {
 	if (this != &obj)
 	{
 		_serverFD = obj._serverFD;
 		_configs = obj._configs;
 		_nameToConfig.clear();
+
 		for (size_t i = 0; i < _configs.size(); ++i)
 		{
-			const std::vector<std::string> &names = _configs[i].getServerNames();
+			const std::vector<std::string>& names = _configs[i].getServerNames();
 			for (size_t j = 0; j < names.size(); ++j)
 			{
-				if (_nameToConfig.count(names[j]) == 0)
-					_nameToConfig.insert(std::make_pair(names[j], _configs[i]));
-				else 
-					std::cerr << "Warning: Duplicate server_name '" << names[j] << "' ignored\n";
+				const std::string& name = names[j];
+				if (name.empty())
+					continue;
+				if (_nameToConfig.count(name) != 0)
+					throw std::runtime_error("Duplicate server_name '" + name + "' for same host:port");
+				_nameToConfig.insert(std::make_pair(name, &_configs[i]));
 			}
 		}
 	}
@@ -98,8 +107,10 @@ const ServerConfig& Server::selectServer(const std::string &hostHeader) const
 	std::string::size_type colon = hostname.find(':');
 	if (colon != std::string::npos)
 		hostname = hostname.substr(0, colon);
-	std::map<std::string, ServerConfig>::const_iterator it = _nameToConfig.find(hostname);
+
+	std::map<std::string, const ServerConfig*>::const_iterator it = _nameToConfig.find(hostname);
 	if (it != _nameToConfig.end())
-		return it->second;
+		return *(it->second);
+
 	return _configs[0];
 }
