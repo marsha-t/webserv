@@ -28,16 +28,22 @@ IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Rout
 		debugMsg("Selecting CgiHandler for extension: " + ext);
 		return new CgiHandler(route, config);
 	}
-	if (req.getMethod() == "POST" && !route.getUploadDir().empty())
+	if (req.getMethod() == "POST" && !route.getUploadDir().empty() && req.getHeader("content-type").find("multipart/form-data") != std::string::npos)
 	{
 		debugMsg("Selecting UploadHandler");
 		return new UploadHandler(route, config);
 	}
-	if (req.getMethod() == "POST" || req.getMethod() == "GET" || req.getMethod() == "DELETE")
+	if (req.getMethod() == "POST" && req.getHeader("content-type").find("application/x-www-form-urlencoded") != std::string::npos)
+	{
+		debugMsg("Selecting FormHandler for x-www-form-urlencoded");
+		return new FormHandler(route, config);
+	}
+	if (req.getMethod() == "GET" || req.getMethod() == "DELETE")
 	{
 		debugMsg("Selecting StaticFileHandler");
 		return new StaticFileHandler(route, config);
 	}
+	debugMsg("405 Method Not Allowed: No handler for " + req.getMethod() + " on target " + req.getTarget());
 	return NULL;
 }
 

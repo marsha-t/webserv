@@ -8,6 +8,7 @@
 #include "CgiHandler.hpp"
 #include "UploadHandler.hpp"
 #include "RedirectHandler.hpp"
+#include "FormHandler.hpp"
 #include "ServerConfig.hpp"
 
 class RequestDispatcher

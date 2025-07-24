@@ -489,7 +489,6 @@ void ServerManager::cleanupClient(int fd)
 	}
 }
 
-
 void ServerManager::trackMaxFd(int fd)
 {
 	if (fd > _max_fd)
