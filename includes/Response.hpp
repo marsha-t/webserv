@@ -8,6 +8,7 @@ class Response
 {
 	private:
 		std::string _httpVersion;
+		int _statusCode;
 		std::string _statusLine;
 		std::map<std::string, std::string> _headers;
 		std::string _body;
@@ -34,6 +35,8 @@ class Response
 	
 		// Other functions
 		std::string toString(void) const;
+		bool isError(void) const;
+
 };
 
 #endif

@@ -6,9 +6,27 @@ CgiHandler::~CgiHandler(void) {}
 
 void CgiHandler::handle(const Request &req, Response &res)
 {
-	std::string scriptPath = _route.getRoot() + req.getTarget();
+	// std::string scriptPath = _route.getRoot() + req.getTarget();
+	std::string rawTarget = req.getTarget();
+	std::string::size_type qpos = rawTarget.find('?');
+	std::string cleanedTarget = (qpos != std::string::npos) ? rawTarget.substr(0, qpos) : rawTarget;
+	std::string relativePath = _route.getRoot() + cleanedTarget;
+
+	// std::string relativePath = _route.getRoot() + req.getTarget();
+	char *absPath = realpath(relativePath.c_str(), NULL);
+
+	if (!absPath) {
+		debugMsg("realpath failed for script: " + relativePath);
+		res.setError(404, _config);  // ✅ Not Found
+		return;
+	}
+
+	std::string scriptPath(absPath);
+	free(absPath);
+
 	std::string cgiOutput = executeCgi(req, res, scriptPath);
-	parseCgiResponse(cgiOutput, res);
+	if (!res.isError())
+		parseCgiResponse(cgiOutput, res);
 }
 
 std::map<std::string, std::string> CgiHandler::getCgiEnv(const Request &req) const
@@ -22,7 +40,7 @@ std::map<std::string, std::string> CgiHandler::getCgiEnv(const Request &req) con
 	env["PATH_INFO"] = req.getTarget();
 	env["PATH_TRANSLATED"] = _route.getRoot() + req.getTarget();
 	env["QUERY_STRING"] = req.getQueryString();
-	env["REMOTE_ADDR"] = ""; // Should be set to the client's IP address
+	env["REMOTE_ADDR"] = "";
 	env["REMOTE_IDENT"] = "";
 	env["REMOTE_USER"] = "";
 	env["REQUEST_METHOD"] = req.getMethod();
@@ -60,22 +78,39 @@ std::string CgiHandler::executeCgi(const Request &req, Response &res, const std:
 		close(pipe_in[0]);
 		close(pipe_out[1]);
 
-		writeRequestBody(req, pipe_in[1]);
-		std::string cgiOutput = readCgiOutput(pipe_out[0]);
+		if (!writeRequestBody(req, pipe_in[1]))
+		{
+			waitpid(pid, NULL, 0);
+			res.setError(500, _config);
+			return "";
+		}
 
+		std::string cgiOutput = readCgiOutput(pipe_out[0]);
 		int status;
 		waitpid(pid, &status, 0);
+		int exitCode = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 
 		// Cleanup
 		for (int j = 0; env[j]; ++j)
 			delete[] env[j];
 		delete[] env;
+		
+		if (exitCode == 126) {
+			debugMsg("CGI exited with 126 — permission denied");
+			res.setError(403, _config);
+			return "";
+		}
 
-		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-		{
+		if (exitCode != 0 || cgiOutput.empty()) {
+			debugMsg("CGI exited with code sth and i return 500");
 			res.setError(500, _config);
 			return "";
 		}
+		// if (!WIFEXITED(status) || WEXITSTATUS(status) != 0 || cgiOutput.empty())
+		// {
+		// 	res.setError(500, _config);
+		// 	return "";
+		// }
 		return cgiOutput;
 	}
 	return "";
@@ -110,93 +145,168 @@ void CgiHandler::handleChildProcess(const Request &req, const std::string &scrip
 		perror("chdir failed");
 		_exit(1);
 	}
+	std::string target = req.getTarget();
+	std::size_t queryPos = target.find('?');
+	if (queryPos != std::string::npos)
+		target = target.substr(0, queryPos);
 
-	std::string ext = req.getTarget().substr(req.getTarget().find_last_of("."));
+	std::size_t dotPos = target.find_last_of(".");
+	std::string ext = (dotPos != std::string::npos) ? target.substr(dotPos) : "";
+
 	std::map<std::string, std::string>::const_iterator it = _route.getCGI().find(ext);
+
 	if (it == _route.getCGI().end())
+	{
 		_exit(1); // Extension not supported
+	}
 
 	const char *cgiPath = it->second.c_str();
 	char *const argv[] = {const_cast<char *>(cgiPath), const_cast<char *>(scriptPath.c_str()), NULL};
+	if (access(scriptPath.c_str(), X_OK) != 0)
+	{
+		perror("Script is not executable");
+		_exit(126); // Convention: 126 = command invoked cannot execute
+	}
 	execve(cgiPath, argv, env);
 	perror("execve failed");
 	_exit(1);
 }
 
-void CgiHandler::writeRequestBody(const Request &req, int writeFd) const
+// void CgiHandler::writeRequestBody(const Request &req, int writeFd) const
+// {
+// 	if (req.getHeader("transfer-encoding") == "chunked")
+// 	{
+// 		std::string body = req.getBody();
+// 		std::istringstream stream(body);
+// 		while (true)
+// 		{
+// 			std::string line;
+// 			if (!std::getline(stream, line))
+// 				break;
+
+// 			line = trimR(line);
+// 			if (line.empty())
+// 				continue;
+
+// 			std::string::size_type semicolon = line.find(';');
+// 			if (semicolon != std::string::npos)
+// 				line = line.substr(0, semicolon);
+
+// 			std::istringstream sizeStream(line);
+// 			std::size_t chunkSize;
+// 			sizeStream >> std::hex >> chunkSize;
+
+// 			if (sizeStream.fail() || !sizeStream.eof())
+// 				break;
+// 			if (chunkSize == 0)
+// 				break;
+
+// 			std::string chunk(chunkSize, '\0');
+// 			stream.read(&chunk[0], chunkSize);
+// 			if (stream.gcount() != static_cast<std::streamsize>(chunkSize))
+// 				break;
+
+// 			if (::write(writeFd, chunk.c_str(), chunk.size()) == -1)
+// 				break;
+
+// 			char end[2];
+// 			stream.read(end, 2);
+// 			if (stream.gcount() != 2 || end[0] != '\r' || end[1] != '\n')
+// 				break;
+// 		}
+// 	}
+// 	else
+// 	{
+// 		if (::write(writeFd, req.getBody().c_str(), req.getBody().length()) == -1)
+// 		{
+// 			// optionally log or handle write failure
+// 		}
+// 	}
+// 	close(writeFd);
+// }
+bool CgiHandler::writeRequestBody(const Request &req, int writeFd) const
 {
-	if (req.getHeader("transfer-encoding") == "chunked")
-	{
-		std::string body = req.getBody();
-		std::istringstream stream(body);
-		while (true)
-		{
-			std::string line;
-			if (!std::getline(stream, line))
-				break;
-
-			line = trimR(line);
-			if (line.empty())
-				continue;
-
-			std::string::size_type semicolon = line.find(';');
-			if (semicolon != std::string::npos)
-				line = line.substr(0, semicolon);
-
-			std::istringstream sizeStream(line);
-			std::size_t chunkSize;
-			sizeStream >> std::hex >> chunkSize;
-
-			if (sizeStream.fail() || !sizeStream.eof())
-				break;
-			if (chunkSize == 0)
-				break;
-
-			std::string chunk(chunkSize, '\0');
-			stream.read(&chunk[0], chunkSize);
-			if (stream.gcount() != static_cast<std::streamsize>(chunkSize))
-				break;
-
-			if (::write(writeFd, chunk.c_str(), chunk.size()) == -1)
-				break;
-
-			char end[2];
-			stream.read(end, 2);
-			if (stream.gcount() != 2 || end[0] != '\r' || end[1] != '\n')
-				break;
-		}
+	const std::string& body = req.getBody();
+	if (body.empty()) {
+		close(writeFd);
+		return true;
 	}
-	else
+
+	ssize_t bytesWritten = write(writeFd, body.c_str(), body.length());
+
+	bool success = true;
+	if (bytesWritten == -1)
 	{
-		if (::write(writeFd, req.getBody().c_str(), req.getBody().length()) == -1)
-		{
-			// optionally log or handle write failure
-		}
+		perror("write to CGI stdin failed");
+		success = false;
 	}
+	else if (bytesWritten == 0)
+	{
+		std::cerr << "[error] write() returned 0 — pipe closed?" << std::endl;
+		success = false;
+	}
+	else if (static_cast<size_t>(bytesWritten) < body.length())
+	{
+		std::cerr << "[warning] Partial write to CGI stdin: "
+		          << bytesWritten << "/" << body.length() << " bytes written" << std::endl;
+		success = false;
+	}
+
 	close(writeFd);
+	return success;
 }
+
+// std::string CgiHandler::readCgiOutput(int readFd) const
+// {
+// 	std::string output;
+// 	char buffer[4096];
+// 	ssize_t bytesRead;
+// 	while ((bytesRead = read(readFd, buffer, sizeof(buffer))) > 0)
+// 	{
+// 		output.append(buffer, bytesRead);
+// 	}
+// 	close(readFd);
+// 	return output;
+// }
 
 std::string CgiHandler::readCgiOutput(int readFd) const
 {
 	std::string output;
 	char buffer[4096];
 	ssize_t bytesRead;
+
 	while ((bytesRead = read(readFd, buffer, sizeof(buffer))) > 0)
 	{
 		output.append(buffer, bytesRead);
+	}
+	if (bytesRead == -1)
+	{
+		perror("read from CGI stdout failed");
+		output.clear();
 	}
 	close(readFd);
 	return output;
 }
 
+
 void CgiHandler::parseCgiResponse(const std::string &cgiOutput, Response &res) const
 {
+	// std::string::size_type headerEnd = cgiOutput.find("\r\n\r\n");
+	// if (headerEnd == std::string::npos)
+	// {
+	// 	// Malformed CGI response — treat entire output as body
+	// 	res.setStatusLine(200, httpStatusMessage(200));
+	// 	res.setBody(cgiOutput);
+	// 	return;
+	// }
 	std::string::size_type headerEnd = cgiOutput.find("\r\n\r\n");
 	if (headerEnd == std::string::npos)
+		headerEnd = cgiOutput.find("\n\n"); // fallback for LF-only scripts
+
+	if (headerEnd == std::string::npos)
 	{
-		// Malformed CGI response — treat entire output as body
-		res.setStatusLine(200, httpStatusMessage(200));
-		res.setBody(cgiOutput);
+		debugMsg("Malformed CGI response: missing header-body separator");
+		res.setError(500, _config);
 		return;
 	}
 

@@ -23,9 +23,9 @@ static std::string normalizeHeaderKey(const std::string &key)
 	return result;
 }
 
-Response::Response(void): _httpVersion("HTTP/1.1") {}
+Response::Response(void): _httpVersion("HTTP/1.1"), _statusCode(200) {}
 
-Response::Response(const Response &obj): _httpVersion(obj._httpVersion), _statusLine(obj._statusLine), _headers(obj._headers), _body(obj._body) {}
+Response::Response(const Response &obj): _httpVersion(obj._httpVersion), _statusCode(obj._statusCode), _statusLine(obj._statusLine), _headers(obj._headers), _body(obj._body) {}
 
 Response::~Response(void) {}
 
@@ -34,6 +34,7 @@ Response &Response::operator=(const Response &obj)
 	if (this != &obj)
 	{
 		_httpVersion = obj._httpVersion;
+		_statusCode = obj._statusCode;
 		_statusLine = obj._statusLine;
 		_headers = obj._headers;
 		_body = obj._body;
@@ -45,6 +46,7 @@ void    Response::setStatusLine(int code, const std::string &message)
 {
 	std::ostringstream	line;
 	line << _httpVersion << " " << code << " " << message;
+	_statusCode = code;
 	_statusLine = line.str();
 }
 
@@ -145,4 +147,9 @@ std::string Response::toString(void) const
 		oss << "\r\n" << _body;
 	}
 	return oss.str();
+}
+
+bool Response::isError() const
+{
+	return _statusCode >= 400;
 }

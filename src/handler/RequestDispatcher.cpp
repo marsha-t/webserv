@@ -50,9 +50,12 @@ IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Rout
 
 std::string RequestDispatcher::getFileExtension(const std::string &path) const
 {
-	std::string::size_type dotPos = path.find_last_of(".");
+	std::string::size_type queryPos = path.find('?');
+	std::string cleanPath = (queryPos != std::string::npos) ? path.substr(0, queryPos) : path;
+
+	std::string::size_type dotPos = cleanPath.find_last_of(".");
 	if (dotPos != std::string::npos)
-		return path.substr(dotPos);
+		return cleanPath.substr(dotPos);
 	return "";
 }
 
