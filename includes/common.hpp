@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <string>
-#include <cstring>      // for memset
+#include <cstring>
 #include <sstream>
 #include <fstream>
 #include <cstdlib>
@@ -15,10 +15,9 @@
 #include "utils.hpp"
 
 // Sockets
-#include <unistd.h>			// for close(), read(), write()
-#include <netinet/in.h>		// for sockaddr_in
-// #include <sys/socket.h> // for socket functions
-#include <arpa/inet.h>  // for htons, inet_pton
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <poll.h>
 #include <sys/wait.h>
 

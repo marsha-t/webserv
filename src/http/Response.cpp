@@ -62,7 +62,7 @@ void Response::setBody(const std::string &body)
 	std::string version;
 	int code;
 	iss >> version >> code;
-	if (code != 204 && code != 304 && (code < 100 || code >= 200)) // not 1xx, 204, 304
+	if (code != 204 && code != 304 && (code < 100 || code >= 200))
 		setHeader("Content-Length", ::toString(_body.size()));
 }
 
@@ -121,7 +121,7 @@ std::string Response::toString(void) const
 	std::ostringstream oss;
 	oss << _statusLine << "\r\n";
 
-	// Extract status code (e.g., "HTTP/1.1 204 No Content")
+	// Extract status code
 	std::istringstream iss(_statusLine);
 	std::string httpVersion;
 	int code = 0;

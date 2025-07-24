@@ -1,4 +1,3 @@
-// #include "../../includes/utils.hpp"
 #include "../../includes/common.hpp"
 
 std::string trimR(const std::string &line)

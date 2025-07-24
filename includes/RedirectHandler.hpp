@@ -21,6 +21,7 @@ class RedirectHandler : public IRequestHandler
 		const ServerConfig &_config;
 
 		RedirectHandler();
+		RedirectHandler(const RedirectHandler &obj);
 		RedirectHandler &operator=(const RedirectHandler &obj);
 };
 

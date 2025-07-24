@@ -29,6 +29,7 @@ class CgiHandler : public IRequestHandler
 		void parseCgiResponse(const std::string &cgiOutput, Response &res) const;
 
 		CgiHandler();
+		CgiHandler(const CgiHandler &obj);
 		CgiHandler &operator=(const CgiHandler &obj);
 };
 

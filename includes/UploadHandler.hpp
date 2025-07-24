@@ -24,6 +24,7 @@ class UploadHandler : public IRequestHandler
 		bool isSafePath(const std::string &path, const std::string &baseDir) const;
 
 		UploadHandler();
+		UploadHandler(const UploadHandler &obj);
 		UploadHandler &operator=(const UploadHandler &obj);
 };
 
