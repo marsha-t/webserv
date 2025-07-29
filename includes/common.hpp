@@ -27,7 +27,8 @@
 #include <algorithm>
 
 // Static Const Variables
-static const std::size_t DEFAULT_MAX_BODY_SIZE = 1 * 1024 * 1024; // 1MB
+// static const std::size_t DEFAULT_MAX_BODY_SIZE = 1 * 1024 * 1024; // 1MB
+static const std::size_t DEFAULT_MAX_BODY_SIZE = 200000000;
 
 // Colours
 #define RESET   "\033[0m"

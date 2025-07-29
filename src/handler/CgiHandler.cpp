@@ -8,8 +8,17 @@ void CgiHandler::handle(const Request &req, Response &res)
 {
 	std::string rawTarget = req.getTarget();
 	std::string::size_type qpos = rawTarget.find('?');
-	std::string cleanedTarget = (qpos != std::string::npos) ? rawTarget.substr(0, qpos) : rawTarget;
-	std::string relativePath = _route.getRoot() + cleanedTarget;
+	// std::string cleanedTarget = (qpos != std::string::npos) ? rawTarget.substr(0, qpos) : rawTarget;
+	// std::string relativePath = _route.getRoot() + cleanedTarget;
+	std::string locationPrefix = _route.getLocation(); // "/directory"
+	std::string targetPath = (qpos != std::string::npos) ? rawTarget.substr(0, qpos) : rawTarget;
+
+	std::string relativeURI = targetPath.substr(locationPrefix.length()); // remove "/directory"
+	if (!relativeURI.empty() && relativeURI[0] == '/')
+		relativeURI = relativeURI.substr(1); // strip leading slash if present
+
+	std::string relativePath = _route.getRoot() + "/" + relativeURI;
+
 
 	char *absPath = realpath(relativePath.c_str(), NULL);
 

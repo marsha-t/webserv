@@ -63,11 +63,11 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 		return;
 	}
 	if (S_ISDIR(s.st_mode)) {
-		if (req.getTarget()[req.getTarget().size() - 1] != '/') {
-			res.setStatusLine(301, httpStatusMessage(301));
-			res.setHeader("Location", req.getTarget() + "/");
-			return;
-		}
+		// if (req.getTarget()[req.getTarget().size() - 1] != '/') {
+		// 	res.setStatusLine(301, httpStatusMessage(301));
+		// 	res.setHeader("Location", req.getTarget() + "/");
+		// 	return;
+		// }
 		if (!handleDirectory(req, res, path))
 			return;
 	}
@@ -130,7 +130,7 @@ bool StaticFileHandler::handleDirectory(const Request &req, Response &res, std::
 			res.setBody(listing);
 		} 
 		else {
-			res.setError(403, _config);
+			res.setError(404, _config);
 		}
 		return false;
 	}

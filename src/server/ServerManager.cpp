@@ -243,7 +243,7 @@ bool ServerManager::handleClientRead(int clientFD, int &parseError, Request *tem
 		return false;
 	}
 
-	if (!isBodyComplete(buffer, *tempReq))
+	if (!isBodyComplete(buffer, *tempReq, parseError))
 		return true;
 
 	if (!parseFullRequest(buffer, _clientRequests[clientFD]))
@@ -307,23 +307,94 @@ bool ServerManager::parseTempHeaders(const std::string& buffer, Request& tempReq
 	return true;
 }
 
-bool ServerManager::isBodyComplete(const std::string& buffer, const Request& tempReq)
+// bool ServerManager::isBodyComplete(const std::string& buffer, const Request& tempReq)
+// {
+// 	std::string::size_type headerEnd = buffer.find("\r\n\r\n");
+// 	std::string contentLengthStr = tempReq.getHeader("content-length");
+// 	std::string transferEncoding = tempReq.getHeader("transfer-encoding");
+
+// 	if (transferEncoding == "chunked")
+// 		return buffer.find("0\r\n\r\n", headerEnd) != std::string::npos;
+
+// 	if (!contentLengthStr.empty())
+// 	{
+// 		char* endptr;
+// 		long contentLength = std::strtol(contentLengthStr.c_str(), &endptr, 10);
+// 		std::size_t bodySize = buffer.length() - (headerEnd + 4);
+// 		return bodySize >= static_cast<size_t>(contentLength);
+// 	}
+// 	// No body expected
+// 	return true;
+// }
+
+bool ServerManager::isBodyComplete(const std::string& buffer, const Request& tempReq, int &parseError)
 {
 	std::string::size_type headerEnd = buffer.find("\r\n\r\n");
+	if (headerEnd == std::string::npos)
+		return false;
+
 	std::string contentLengthStr = tempReq.getHeader("content-length");
 	std::string transferEncoding = tempReq.getHeader("transfer-encoding");
 
-	if (transferEncoding == "chunked")
-		return buffer.find("0\r\n\r\n", headerEnd) != std::string::npos;
+	// === Handle Transfer-Encoding: chunked ===
+	if (!transferEncoding.empty() && transferEncoding == "chunked")
+	{
+		std::size_t pos = headerEnd + 4;
 
+		while (pos < buffer.size())
+		{
+			std::size_t lineEnd = buffer.find("\r\n", pos);
+			if (lineEnd == std::string::npos)
+				return false; // Incomplete chunk size line
+
+			std::string chunkSizeStr = buffer.substr(pos, lineEnd - pos);
+			char* endptr;
+			long chunkSize = std::strtol(chunkSizeStr.c_str(), &endptr, 16);
+
+			// Check for invalid or negative chunk size
+			if (*endptr != '\0' || chunkSize < 0)
+			{
+				parseError = 400;
+				return false;
+			}
+
+			pos = lineEnd + 2;
+
+			// Check if chunk data is fully received
+			if (pos + chunkSize + 2 > buffer.size())
+				return false;
+
+			// Ensure chunk is followed by CRLF
+			if (buffer.substr(pos + chunkSize, 2) != "\r\n")
+			{
+				parseError = 400;
+				return false;
+			}
+
+			pos += chunkSize + 2;
+
+			if (chunkSize == 0)
+				return true; // Final chunk received
+		}
+		return false; // More data expected
+	}
+
+	// === Handle Content-Length ===
 	if (!contentLengthStr.empty())
 	{
 		char* endptr;
 		long contentLength = std::strtol(contentLengthStr.c_str(), &endptr, 10);
+		if (*endptr != '\0' || contentLength < 0)
+		{
+			parseError = 400;
+			return false;
+		}
+
 		std::size_t bodySize = buffer.length() - (headerEnd + 4);
-		return bodySize >= static_cast<size_t>(contentLength);
+		return bodySize >= static_cast<std::size_t>(contentLength);
 	}
-	// No body expected
+
+	// === No body expected ===
 	return true;
 }
 
@@ -451,6 +522,7 @@ void ServerManager::handleClientWrite(int fd)
 	}
 
 	std::string &response = respIt->second;
+	std::cout << response << std::endl;
 	size_t &offset = _responseOffsets[fd];
 
 	ssize_t bytesSent = write(fd, response.c_str() + offset, response.size() - offset);

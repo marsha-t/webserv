@@ -22,7 +22,8 @@ IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Rout
 		debugMsg("Selecting RedirectHandler");
 		return new RedirectHandler(route, config);
 	}
-	if (isCgiRequest(req, route) && (req.getMethod() == "GET" || req.getMethod() == "POST"))
+	// if (isCgiRequest(req, route) && (req.getMethod() == "GET" || req.getMethod() == "POST"))
+	if (isCgiRequest(req, route) && (req.getMethod() == "POST"))
 	{
 		std::string ext = toLower(getFileExtension(req.getTarget()));
 		debugMsg("Selecting CgiHandler for extension: " + ext);
@@ -45,8 +46,7 @@ IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Rout
 	}
 	if (req.getMethod() == "POST")
 	{
-		debugMsg("415 Unsupported Media Type for POST to " + req.getTarget());
-		return NULL;
+		return new UploadHandler(route, config);
 	}
 	return NULL;
 }

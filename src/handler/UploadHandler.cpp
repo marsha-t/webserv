@@ -27,9 +27,10 @@ void UploadHandler::handle(const Request &req, Response &res)
 	}
 
 	const std::map<std::string, std::vector<UploadedFile> >& uploadedFiles = req.getUploadedFiles();
+
+	// Case 1: Multipart file uploads
 	if (!uploadedFiles.empty())
 	{
-		// Process uploaded files
 		for (std::map<std::string, std::vector<UploadedFile> >::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it)
 		{
 			const std::vector<UploadedFile>& fileList = it->second;
@@ -40,17 +41,18 @@ void UploadHandler::handle(const Request &req, Response &res)
 
 				if (access(fullPath.c_str(), F_OK) == 0)
 				{
-					res.setError(409, _config);
+					res.setError(409, _config); // File already exists
 					return;
 				}
 				if (!isSafePath(fullPath, uploadDir))
 				{
-					res.setError(403, _config);
+					res.setError(403, _config); // Unsafe path
 					return;
 				}
 				if (!saveFile(fullPath, fileIt->content))
 				{
-					res.setError(500, _config);
+					debugMsg("333");
+					res.setError(500, _config); // Write failure
 					return;
 				}
 			}
@@ -60,20 +62,118 @@ void UploadHandler::handle(const Request &req, Response &res)
 		return;
 	}
 
-	// No files, but body might still be valid POST
+	// Case 2: Raw body upload (e.g. test/file or application/octet-stream)
 	if (!req.getBody().empty())
 	{
-		debugMsg("No files uploaded, but POST body was present.");
-		res.setStatusLine(200, "OK");
-		res.setHeader("Content-Type", "text/html");
-		res.setBody("<html><body><p>POST data received but no file uploaded.</p></body></html>");
+		std::string fallbackFilename = "upload_" + generateTimestamp() + ".bin";
+		std::string fullPath = uploadDir + "/" + fallbackFilename;
+
+		if (access(fullPath.c_str(), F_OK) == 0)
+		{
+			res.setError(409, _config); // File already exists
+			return;
+		}
+		if (!isSafePath(fullPath, uploadDir))
+		{
+			res.setError(403, _config); // Unsafe path
+			return;
+		}
+		if (!saveFile(fullPath, req.getBody()))
+		{
+			debugMsg("444");
+			res.setError(500, _config); // Write failure
+			return;
+		}
+
+		res.setStatusLine(201, httpStatusMessage(201));
+		res.setHeader("Location", fullPath);
 		return;
 	}
 
-	// POST with no body at all — e.g. curl -F "empty=" ...
-	debugMsg("Empty POST received with no files or body");
+	// Case 3: Empty POST
 	res.setStatusLine(204, "No Content");
 }
+
+// void UploadHandler::handle(const Request &req, Response &res)
+// {
+// 	if (req.getMethod() != "POST")
+// 	{
+// 		debugMsg("111");
+// 		res.setError(405, _config);
+// 		return;
+// 	}
+
+// 	std::string uploadDir = _route.getUploadDir();
+// 	if (uploadDir.empty())
+// 	{
+// 		res.setError(500, _config);
+// 		return;
+// 	}
+
+// 	struct stat s;
+// 	if (stat(uploadDir.c_str(), &s) != 0 || !S_ISDIR(s.st_mode) || access(uploadDir.c_str(), W_OK) != 0)
+// 	{
+// 		res.setError(500, _config);
+// 		return;
+// 	}
+
+// 	const std::map<std::string, std::vector<UploadedFile> >& uploadedFiles = req.getUploadedFiles();
+// 	if (!uploadedFiles.empty())
+// 	{
+// 		// Process uploaded files
+// 		for (std::map<std::string, std::vector<UploadedFile> >::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it)
+// 		{
+// 			const std::vector<UploadedFile>& fileList = it->second;
+// 			for (std::vector<UploadedFile>::const_iterator fileIt = fileList.begin(); fileIt != fileList.end(); ++fileIt)
+// 			{
+// 				std::string safeFilename = sanitizeFilename(fileIt->filename);
+// 				std::string fullPath = uploadDir + "/" + safeFilename;
+
+// 				if (access(fullPath.c_str(), F_OK) == 0)
+// 				{
+// 					res.setError(409, _config);
+// 					return;
+// 				}
+// 				if (!isSafePath(fullPath, uploadDir))
+// 				{
+// 					res.setError(403, _config);
+// 					return;
+// 				}
+// 				if (!saveFile(fullPath, fileIt->content))
+// 				{
+// 					res.setError(500, _config);
+// 					return;
+// 				}
+// 			}
+// 		}
+// 		res.setStatusLine(201, httpStatusMessage(201));
+// 		res.setHeader("Location", uploadDir);
+// 		return;
+// 	}
+
+// 	// No files, but body might still be valid POST
+// 	if (!req.getBody().empty())
+// 	{
+// 		debugMsg("No files uploaded, but POST body was present.");
+// 		res.setStatusLine(200, "OK");
+// 		res.setHeader("Content-Type", "text/html");
+// 		res.setBody("<html><body><p>POST data received but no file uploaded.</p></body></html>");
+// 		return;
+// 	}
+
+// 	// POST with no body at all — e.g. curl -F "empty=" ...
+// 	debugMsg("Empty POST received with no files or body");
+// 	res.setStatusLine(204, "No Content");
+// }
+
+std::string UploadHandler::generateTimestamp() const
+{
+	time_t now = time(NULL);
+	char buf[32];
+	strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", localtime(&now));
+	return std::string(buf);
+}
+
 
 // To avoid filenames like ../../../etc/passwd that will escape intended upload directory
 // keeps alphanumerics, dots, underscores and hyphens; replace all others with _

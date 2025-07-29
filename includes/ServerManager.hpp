@@ -45,7 +45,9 @@ class ServerManager
 		bool	readFromClient(int fd, std::string& buffer, int& parseError);
 		bool	headersComplete(const std::string& buffer);
 		bool	parseTempHeaders(const std::string& buffer, Request& tempReq);
-		bool	isBodyComplete(const std::string& buffer, const Request& tempReq);
+		// bool	isBodyComplete(const std::string& buffer, const Request& tempReq);
+		bool isBodyComplete(const std::string& buffer, const Request& tempReq, int &parseError);
+
 		bool	parseFullRequest(const std::string& buffer, Request& requestOut);
 		void	processClientRequest(int clientFD, Request& request);
 		const	ServerConfig* getSelectedConfig(int clientFD, const Request& request);
