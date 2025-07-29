@@ -130,6 +130,7 @@ bool StaticFileHandler::handleDirectory(const Request &req, Response &res, std::
 			res.setBody(listing);
 		} 
 		else {
+			res.setError(403, _config);
 		}
 		return false;
 	}
