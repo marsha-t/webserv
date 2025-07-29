@@ -38,7 +38,7 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 {
 	std::string relative = req.getTarget().substr(_route.getLocation().length());
 	std::string path = joinPath(_route.getRoot(), relative);
-	
+
 	struct stat s;
 	if (stat(path.c_str(), &s) != 0) 
 	{

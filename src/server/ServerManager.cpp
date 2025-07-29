@@ -42,18 +42,49 @@ ServerManager::~ServerManager(void)
 		close(_servers[i].getServerFD());
 }
 
-ServerManager::ServerManager(const std::vector<ServerConfig> &configs): _max_fd(0)
+ServerManager::ServerManager(const std::vector<ServerConfig> &configs) : _max_fd(0)
 {
 	FD_ZERO(&_master_read_fds);
 	FD_ZERO(&_master_write_fds);
 
 	std::map<std::pair<std::string, int>, std::vector<ServerConfig> > grouped;
+	std::vector<ServerConfig> wildcardConfigs;
+
 	for (size_t i = 0; i < configs.size(); ++i)
 	{
-		std::pair<std::string, int> key = std::make_pair(configs[i].getHost(), configs[i].getPort());
+		const std::string& host = configs[i].getHost();
+		int port = configs[i].getPort();
+	
+		if (host == "0.0.0.0")
+		{
+			wildcardConfigs.push_back(configs[i]);
+			continue; // hold onto wildcard for now
+		}
+	
+		std::pair<std::string, int> key = std::make_pair(host, port);
 		grouped[key].push_back(configs[i]);
 	}
-
+	
+	// Now merge wildcard configs into all existing groups of the same port
+	for (std::map<std::pair<std::string, int>, std::vector<ServerConfig> >::iterator it = grouped.begin(); it != grouped.end(); ++it)
+	{
+		for (size_t i = 0; i < wildcardConfigs.size(); ++i)
+		{
+			if (wildcardConfigs[i].getPort() == it->first.second)
+				it->second.push_back(wildcardConfigs[i]);
+		}
+	}
+	
+	// Also, if there's no non-wildcard server for a wildcard port, preserve it as its own group
+	for (size_t i = 0; i < wildcardConfigs.size(); ++i)
+	{
+		std::pair<std::string, int> key = std::make_pair("0.0.0.0", wildcardConfigs[i].getPort());
+		if (grouped.find(key) == grouped.end()) {
+			grouped[key].push_back(wildcardConfigs[i]);
+		}
+	}
+	
+	// Create Server instances
 	for (std::map<std::pair<std::string, int>, std::vector<ServerConfig> >::iterator it = grouped.begin(); it != grouped.end(); ++it)
 	{
 		Server server(it->second);

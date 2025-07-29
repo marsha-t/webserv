@@ -108,9 +108,28 @@ const ServerConfig& Server::selectServer(const std::string &hostHeader) const
 	if (colon != std::string::npos)
 		hostname = hostname.substr(0, colon);
 
+	// Try exact match from map
 	std::map<std::string, const ServerConfig*>::const_iterator it = _nameToConfig.find(hostname);
-	if (it != _nameToConfig.end())
+	if (it != _nameToConfig.end()) {
+		debugMsg("Matched server config: " + hostname);
 		return *(it->second);
+	}
 
+	// Fallback - search configs for one that has "default_server" as a server_name
+	for (size_t i = 0; i < _configs.size(); ++i)
+	{
+		const std::vector<std::string>& names = _configs[i].getServerNames();
+		for (size_t j = 0; j < names.size(); ++j)
+		{
+			if (names[j] == "default_server")
+			{
+				debugMsg("Using default_server fallback");
+				return _configs[i];
+			}
+		}
+	}
+
+	// Absolute fallback - return first config
+	debugMsg("No matching or default server; using first config as fallback");
 	return _configs[0];
 }
