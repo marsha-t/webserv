@@ -386,8 +386,11 @@ void ServerManager::generateResponseAndBuffer(int clientFD, const Request& reque
 
 	if (!handler)
 	{
-		errorMsg("No handler implemented", clientFD);
-		response.setError(405, config);
+		if (route.isMethodAllowed(request.getMethod())) {
+			response.setError(415, config);
+		} else {
+			response.setError(405, config);
+		}
 		bufferResponse(clientFD, response.toString());
 		return;
 	}

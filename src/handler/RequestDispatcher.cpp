@@ -43,7 +43,11 @@ IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Rout
 		debugMsg("Selecting StaticFileHandler");
 		return new StaticFileHandler(route, config);
 	}
-	debugMsg("405 Method Not Allowed: No handler for " + req.getMethod() + " on target " + req.getTarget());
+	if (req.getMethod() == "POST")
+	{
+		debugMsg("415 Unsupported Media Type for POST to " + req.getTarget());
+		return NULL;
+	}
 	return NULL;
 }
 

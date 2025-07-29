@@ -1,6 +1,6 @@
 #include "../../includes/Route.hpp"
 
-Route::Route(void): _isRedirect(false), _hasClientMaxBodySize(false) {}
+Route::Route(void): _autoindex(false), _isRedirect(false), _hasClientMaxBodySize(false) {}
 Route::Route(const Route &obj): _location(obj._location), _root(obj._root), _methods(obj._methods), \
  _indexFiles(obj._indexFiles), _autoindex(obj._autoindex), _uploadDir(obj._uploadDir), \
  _isRedirect(obj._isRedirect), _redirectStatusCode(obj._redirectStatusCode), _redirectURL(obj._redirectURL), _cgi(obj._cgi), \
