@@ -100,7 +100,6 @@ std::string CgiHandler::executeCgi(const Request &req, Response &res, const std:
 		}
 
 		if (exitCode != 0 || cgiOutput.empty()) {
-			debugMsg("CGI exited with code sth and i return 500");
 			res.setError(500, _config);
 			return "";
 		}

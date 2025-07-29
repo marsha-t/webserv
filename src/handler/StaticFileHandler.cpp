@@ -47,7 +47,6 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 	}
 	if (!isSafePath(path)) 
 	{
-		debugMsg("111");
 		res.setError(403, _config);
 		return;
 	}
@@ -56,8 +55,6 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 	{
 		if (S_ISDIR(s.st_mode)) 
 		{
-			debugMsg("222");
-			
 			res.setError(403, _config);
 			return;
 		}
@@ -133,8 +130,6 @@ bool StaticFileHandler::handleDirectory(const Request &req, Response &res, std::
 			res.setBody(listing);
 		} 
 		else {
-			debugMsg("333");
-			res.setError(403, _config);
 		}
 		return false;
 	}
