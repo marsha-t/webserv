@@ -502,7 +502,6 @@ void ServerManager::handleClientWrite(int fd)
 	}
 
 	std::string &response = respIt->second;
-	std::cout << response << std::endl;
 	size_t &offset = _responseOffsets[fd];
 
 	ssize_t bytesSent = write(fd, response.c_str() + offset, response.size() - offset);
