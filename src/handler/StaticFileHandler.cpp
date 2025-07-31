@@ -63,11 +63,6 @@ void StaticFileHandler::handle(const Request &req, Response &res)
 		return;
 	}
 	if (S_ISDIR(s.st_mode)) {
-		// if (req.getTarget()[req.getTarget().size() - 1] != '/') {
-		// 	res.setStatusLine(301, httpStatusMessage(301));
-		// 	res.setHeader("Location", req.getTarget() + "/");
-		// 	return;
-		// }
 		if (!handleDirectory(req, res, path))
 			return;
 	}
