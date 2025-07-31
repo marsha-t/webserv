@@ -307,26 +307,6 @@ bool ServerManager::parseTempHeaders(const std::string& buffer, Request& tempReq
 	return true;
 }
 
-// bool ServerManager::isBodyComplete(const std::string& buffer, const Request& tempReq)
-// {
-// 	std::string::size_type headerEnd = buffer.find("\r\n\r\n");
-// 	std::string contentLengthStr = tempReq.getHeader("content-length");
-// 	std::string transferEncoding = tempReq.getHeader("transfer-encoding");
-
-// 	if (transferEncoding == "chunked")
-// 		return buffer.find("0\r\n\r\n", headerEnd) != std::string::npos;
-
-// 	if (!contentLengthStr.empty())
-// 	{
-// 		char* endptr;
-// 		long contentLength = std::strtol(contentLengthStr.c_str(), &endptr, 10);
-// 		std::size_t bodySize = buffer.length() - (headerEnd + 4);
-// 		return bodySize >= static_cast<size_t>(contentLength);
-// 	}
-// 	// No body expected
-// 	return true;
-// }
-
 bool ServerManager::isBodyComplete(const std::string& buffer, const Request& tempReq, int &parseError)
 {
 	std::string::size_type headerEnd = buffer.find("\r\n\r\n");
