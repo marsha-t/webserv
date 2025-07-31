@@ -8,26 +8,29 @@ void CgiHandler::handle(const Request &req, Response &res)
 {
 	std::string rawTarget = req.getTarget();
 	std::string::size_type qpos = rawTarget.find('?');
-	// std::string cleanedTarget = (qpos != std::string::npos) ? rawTarget.substr(0, qpos) : rawTarget;
-	// std::string relativePath = _route.getRoot() + cleanedTarget;
-	std::string locationPrefix = _route.getLocation(); // "/directory"
+	
+	std::string locationPrefix = _route.getLocation();
 	std::string targetPath = (qpos != std::string::npos) ? rawTarget.substr(0, qpos) : rawTarget;
 
-	std::string relativeURI = targetPath.substr(locationPrefix.length()); // remove "/directory"
+	std::string relativeURI = targetPath.substr(locationPrefix.length());
 	if (!relativeURI.empty() && relativeURI[0] == '/')
-		relativeURI = relativeURI.substr(1); // strip leading slash if present
+		relativeURI = relativeURI.substr(1);
 
 	std::string relativePath = _route.getRoot() + "/" + relativeURI;
-
-
+	
 	char *absPath = realpath(relativePath.c_str(), NULL);
 
 	if (!absPath) {
-		debugMsg("realpath failed for script: " + relativePath);
-		res.setError(404, _config); 
+			debugMsg("realpath failed for script: " + relativePath);
+		if (errno == ENOENT)
+			res.setError(404, _config);
+		else if (errno == EACCES)
+			res.setError(403, _config);
+		else
+			res.setError(500, _config);
 		return;
 	}
-
+	
 	std::string scriptPath(absPath);
 	free(absPath);
 
@@ -239,7 +242,12 @@ void CgiHandler::parseCgiResponse(const std::string &cgiOutput, Response &res) c
 	}
 
 	std::string headerBlock = cgiOutput.substr(0, headerEnd);
-	std::string body = cgiOutput.substr(headerEnd + 4);
+	std::string body;
+	if (cgiOutput.substr(headerEnd, 4) == "\r\n\r\n")
+		body = cgiOutput.substr(headerEnd + 4);
+	else
+		body = cgiOutput.substr(headerEnd + 2);
+
 
 	std::istringstream headerStream(headerBlock);
 	std::string line;

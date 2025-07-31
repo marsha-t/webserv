@@ -3,7 +3,9 @@
 import os
 import sys
 
-print("Content-Type: text/html\r\n")
+# Proper CGI header and blank line
+print("Content-Type: text/html")
+print()  # Blank line separates headers from body
 
 print("<html><body>")
 print("<h1>Hello from CGI!</h1>")

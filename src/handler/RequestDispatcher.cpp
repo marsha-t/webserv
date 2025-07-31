@@ -22,8 +22,7 @@ IRequestHandler *RequestDispatcher::selectHandler(const Request &req, const Rout
 		debugMsg("Selecting RedirectHandler");
 		return new RedirectHandler(route, config);
 	}
-	// if (isCgiRequest(req, route) && (req.getMethod() == "GET" || req.getMethod() == "POST"))
-	if (isCgiRequest(req, route) && (req.getMethod() == "POST"))
+	if (isCgiRequest(req, route) && (req.getMethod() == "GET" || req.getMethod() == "POST"))
 	{
 		std::string ext = toLower(getFileExtension(req.getTarget()));
 		debugMsg("Selecting CgiHandler for extension: " + ext);
