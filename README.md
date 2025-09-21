@@ -4,7 +4,6 @@ A lightweight HTTP/1.1 web server written in C++ from scratch as part of the 42 
 This project replicates core features of production servers like Nginx, giving hands-on experience in network programming, request parsing, and server design.
 
 ---
-
 ## Features
 - **HTTP methods**: `GET`, `POST`, `DELETE`
 - **CGI execution**: run scripts (e.g. PHP, Python) through the server
@@ -13,7 +12,6 @@ This project replicates core features of production servers like Nginx, giving h
 - **Error handling**: customizable error pages
 - **Chunked transfer encoding**
 - **Concurrent client handling** using `select()`
-
 ---
 
 ## Usage
@@ -27,6 +25,7 @@ This project replicates core features of production servers like Nginx, giving h
 	make
    ```
 3. **Run**
+   
    Run with default configuration (`default.conf`)
    ```
    ./webserv
@@ -40,6 +39,22 @@ This project replicates core features of production servers like Nginx, giving h
    ```
    curl -v http://localhost:8080 
    ```
+---
+
+## Testing
+
+The server was validated with a suite of manual `curl` tests to check HTTP methods, uploads, CGI, redirects, and multi-server configurations.
+
+### Example
+```bash
+# GET request with autoindex enabled
+curl -v http://localhost:8080/uploads/ 
+# Expected: 200 + directory listing
+```
+
+Full test cases can be found in the [tests/](./tests) folder.
+
+---
 ## Request–Response Flow
 In the lifecycle of a request
  - The client sends an HTTP request
@@ -57,7 +72,7 @@ flowchart LR
     E --> F[Response]
     F --> A
 ```
-
+---
 ## Architecture Overview
 The server is built with a modular, object-oriented design, where each class has a clear responsibility. This makes the codebase easier to extend (e.g., adding new handlers) and maintain. Below is an overview of how the server is structured internally.
 
